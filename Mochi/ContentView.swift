@@ -5,10 +5,8 @@ import MochiCore
 struct ContentView: View {
     private let demoAnimation = SpriteAnimation(
         frames: [
-            SpriteFrame(imageName: "idle_a", duration: 0.08),
-            SpriteFrame(imageName: "idle_b", duration: 0.08),
-            SpriteFrame(imageName: "idle_a", duration: 0.08),
-            SpriteFrame(imageName: "idle_c", duration: 0.08)
+            SpriteFrame(imageName: "mochi_idle_0", duration: 0.1),
+            SpriteFrame(imageName: "mochi_idle_1", duration: 0.1)
         ],
         loop: true
     )
@@ -17,20 +15,22 @@ struct ContentView: View {
         VStack(spacing: 16) {
             SpriteRendererView(animation: demoAnimation) { frame in
                 ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.blue.opacity(0.15))
-                        .frame(width: 96, height: 72)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.blue.opacity(0.35), lineWidth: 1)
-                        )
+                    Color(red: 1.0, green: 0.95, blue: 0.4, opacity: 0.8)
+                    Image(frame.imageName, bundle: .module)
+                        .renderingMode(.original)
+                        .interpolation(.none)
+                        .resizable()
+                        .frame(width: 64, height: 48)
+                        .border(Color.black.opacity(0.3), width: 1)
                     Text(frame.imageName)
-                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.9))
-                        .cornerRadius(6)
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.black.opacity(0.8))
+                        .padding(.top, 44)
                 }
+                .frame(width: 96, height: 72)
+                .cornerRadius(6)
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.4), lineWidth: 1))
+                .shadow(radius: 1, y: 1)
             }
             VStack(spacing: 8) {
                 Text("Mochi")

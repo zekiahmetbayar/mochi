@@ -18,12 +18,18 @@ let package = Package(
         .executableTarget(
             name: "MochiApp",
             dependencies: ["MochiCore"],
-            path: "Mochi"
+            path: "Mochi",
+            resources: [
+                .process("Assets")
+            ]
         ),
         .testTarget(
             name: "MochiTests",
             dependencies: ["MochiCore"],
-            path: "MochiTests"
+            path: "MochiTests",
+            resources: [
+                .process("Fixtures")
+            ]
         )
     ]
 )
