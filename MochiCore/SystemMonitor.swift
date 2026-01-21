@@ -67,7 +67,7 @@ public final class SystemMonitor: ObservableObject {
     public init(
         cpuProvider: CPUProviding = defaultCPUProvider(),
         memoryProvider: MemoryProviding = defaultMemoryProvider(),
-        networkProvider: NetworkProviding = NetworkStub(),
+        networkProvider: NetworkProviding = defaultNetworkProvider(),
         downloadProvider: DownloadProviding = DownloadStub(),
         pollInterval: TimeInterval = 1.0,
         queue: DispatchQueue = DispatchQueue(label: "com.mochi.systemmonitor")
@@ -142,6 +142,14 @@ public func defaultMemoryProvider() -> MemoryProviding {
     return MemoryMachProvider()
 #else
     return MemoryStub()
+#endif
+}
+
+public func defaultNetworkProvider() -> NetworkProviding {
+#if os(macOS)
+    return NetworkPathProvider()
+#else
+    return NetworkStub()
 #endif
 }
 
