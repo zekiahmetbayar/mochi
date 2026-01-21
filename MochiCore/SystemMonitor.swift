@@ -62,9 +62,10 @@ public final class SystemMonitor: ObservableObject {
     private let downloadProvider: DownloadProviding
     private let queue: DispatchQueue
     private var timer: DispatchSourceTimer?
+    private var cpuFilter = EmaFilter(alpha: 0.25)
 
     public init(
-        cpuProvider: CPUProviding = CPUStub(),
+        cpuProvider: CPUProviding = defaultCPUProvider(),
         memoryProvider: MemoryProviding = MemoryStub(),
         networkProvider: NetworkProviding = NetworkStub(),
         downloadProvider: DownloadProviding = DownloadStub(),
@@ -98,7 +99,8 @@ public final class SystemMonitor: ObservableObject {
 
     /// Executes a single poll cycle using providers.
     internal func pollOnce() {
-        let cpu = cpuProvider.cpuPercent() ?? stats.cpuPercent
+        let rawCpu = cpuProvider.cpuPercent() ?? stats.cpuPercent
+        let cpu = cpuFilter.update(sample: clampPercent(rawCpu))
         let ram = memoryProvider.ramUsedPercent() ?? stats.ramUsedPercent
         let reachable = networkProvider.isReachable()
         let download = downloadProvider.downloadRate() ?? stats.downloadRate
@@ -126,6 +128,14 @@ public final class SystemMonitor: ObservableObject {
 }
 
 // MARK: - Default stub providers (lightweight placeholders)
+
+public func defaultCPUProvider() -> CPUProviding {
+#if os(macOS)
+    return CPUMachProvider()
+#else
+    return CPUStub()
+#endif
+}
 
 public struct CPUStub: CPUProviding {
     public init() {}
