@@ -30,4 +30,23 @@ public enum OverlayGeometry {
         let yOrigin = screenHeight - totalHeight
         return Frame(x: 0, y: yOrigin, width: screenWidth, height: totalHeight)
     }
+
+    /// Computes the sprite's top-left Y origin so its bottom aligns with the menu bar baseline,
+    /// allowing an optional downward "hang" offset.
+    /// - Parameters:
+    ///   - menuBarHeight: Menu bar height in points.
+    ///   - spriteHeight: Sprite height in points.
+    ///   - hangDown: Additional offset in points to drop the sprite below the baseline.
+    /// - Returns: The Y origin (from the top of the overlay) clamped to be non-negative.
+    public static func computeSpriteOriginY(
+        menuBarHeight: Double,
+        spriteHeight: Double,
+        hangDown: Double = 0
+    ) -> Double {
+        let clampedMenu = max(menuBarHeight, 0)
+        let clampedSprite = max(spriteHeight, 0)
+        let clampedHang = max(hangDown, 0)
+        let origin = clampedMenu - clampedSprite + clampedHang
+        return max(origin, 0)
+    }
 }

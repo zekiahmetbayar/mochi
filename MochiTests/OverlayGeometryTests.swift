@@ -39,4 +39,32 @@ final class OverlayGeometryTests: XCTestCase {
         XCTAssertEqual(frame.height, 0)
         XCTAssertEqual(frame.y, 600)
     }
+
+    func testSpriteOriginAlignsToMenuBarBaseline() {
+        let y = OverlayGeometry.computeSpriteOriginY(
+            menuBarHeight: 24,
+            spriteHeight: 60,
+            hangDown: 0
+        )
+        // Baseline at 24, sprite height 60 => top should sit at -36 but clamped to 0.
+        XCTAssertEqual(y, 0)
+    }
+
+    func testSpriteOriginAllowsHangDown() {
+        let y = OverlayGeometry.computeSpriteOriginY(
+            menuBarHeight: 24,
+            spriteHeight: 40,
+            hangDown: 10
+        )
+        // Without hang: -16 => clamped to 0; with hang 10 => still 0.
+        XCTAssertEqual(y, 0)
+
+        let y2 = OverlayGeometry.computeSpriteOriginY(
+            menuBarHeight: 80,
+            spriteHeight: 40,
+            hangDown: 12
+        )
+        // Baseline at 80: top at 40, plus hang 12 => 52.
+        XCTAssertEqual(y2, 52)
+    }
 }

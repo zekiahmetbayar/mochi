@@ -7,7 +7,10 @@ struct ContentView: View {
     @State private var physics = MochiPhysics(boundsWidth: 400, seed: 99, speed: 60)
     @State private var lastTick: Date = .now
     @State private var showSettings = false
+    @StateObject private var systemMonitor = SystemMonitor()
     private let timer = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
+    private let spriteSize = CGSize(width: 96, height: 72)
+    private let menuBarHeight = NSStatusBar.system.thickness
 
     private let demoAnimation = SpriteAnimation(
         frames: [
@@ -19,69 +22,72 @@ struct ContentView: View {
 
     var body: some View {
         GeometryReader { geo in
-            VStack(spacing: 16) {
-                spriteStrip
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .offset(x: physics.positionX - 48)
-                    .contentShape(Rectangle())
-                    .onTapGesture { showSettings.toggle() }
-                    .popover(isPresented: $showSettings, arrowEdge: .top) {
-                        SettingsPopoverView(
-                            clickThrough: $overlayBridge.clickThrough,
-                            onQuit: { overlayBridge.quitApp() }
-                        )
-                        .padding()
-                    }
-                VStack(spacing: 8) {
-                    Text("Mochi")
-                        .font(.title2)
-                        .bold()
-                    Text("Menu-bar overlay coming soon")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .padding(24)
-            .frame(minWidth: 300, minHeight: 260, alignment: .topLeading)
-            .background(Color(.windowBackgroundColor).opacity(0.5))
+            MochiOverlayView(
+                animation: demoAnimation,
+                spriteSize: spriteSize,
+                menuBarHeight: menuBarHeight,
+                positionX: physics.positionX,
+                hangOffset: 0,
+                showSettings: $showSettings,
+                spriteContent: spriteSpriteView,
+                settingsContent: settingsContent
+            )
+            .allowsHitTesting(!overlayBridge.clickThrough)
+            .background(Color.clear)
             .onAppear {
-                physics.updateBounds(width: geo.size.width)
+                let travelWidth = max(geo.size.width - spriteSize.width, 1)
+                physics.updateBounds(width: travelWidth)
                 lastTick = .now
+                systemMonitor.start()
             }
             .onReceive(timer) { date in
                 let dt = date.timeIntervalSince(lastTick)
                 lastTick = date
-                physics.updateBounds(width: geo.size.width)
+                let travelWidth = max(geo.size.width - spriteSize.width, 1)
+                physics.updateBounds(width: travelWidth)
                 physics.step(dt: dt)
             }
+            .onDisappear {
+                systemMonitor.stop()
+            }
         }
+        .background(Color.clear)
+        .ignoresSafeArea()
     }
 
-    private var spriteStrip: some View {
-        SpriteRendererView(animation: demoAnimation) { frame in
-            ZStack {
-                Color(red: 1.0, green: 0.95, blue: 0.4, opacity: 0.8)
-                Image(frame.imageName, bundle: .module)
-                    .renderingMode(.original)
-                    .interpolation(.none)
-                    .resizable()
-                    .frame(width: 64, height: 48)
-                    .border(Color.black.opacity(0.3), width: 1)
-                Text(frame.imageName)
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.black.opacity(0.8))
-                    .padding(.top, 44)
-            }
-            .frame(width: 96, height: 72)
-            .cornerRadius(6)
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.4), lineWidth: 1))
-            .shadow(radius: 1, y: 1)
+    private func spriteSpriteView(frame: SpriteFrame) -> some View {
+        ZStack {
+            Color(red: 1.0, green: 0.95, blue: 0.4, opacity: 0.8)
+            Image(frame.imageName, bundle: .module)
+                .renderingMode(.original)
+                .interpolation(.none)
+                .resizable()
+                .frame(width: 64, height: 48)
+                .border(Color.black.opacity(0.3), width: 1)
+            Text(frame.imageName)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundStyle(.black.opacity(0.8))
+                .padding(.top, 44)
         }
+        .frame(width: spriteSize.width, height: spriteSize.height)
+        .cornerRadius(6)
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.blue.opacity(0.4), lineWidth: 1))
+        .shadow(radius: 1, y: 1)
+    }
+
+    private func settingsContent() -> some View {
+        SettingsPopoverView(
+            clickThrough: $overlayBridge.clickThrough,
+            stats: systemMonitor.stats,
+            onQuit: { overlayBridge.quitApp() }
+        )
+        .padding()
     }
 }
 
 struct SettingsPopoverView: View {
     @Binding var clickThrough: Bool
+    let stats: SystemStats
     let onQuit: () -> Void
 
     var body: some View {
@@ -90,18 +96,31 @@ struct SettingsPopoverView: View {
             Toggle("Click-through overlay", isOn: $clickThrough)
             Divider()
             VStack(alignment: .leading, spacing: 4) {
-                Text("Debug (placeholder)")
+                Text("Debug (live)")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                Text("CPU: --%")
-                Text("RAM: --%")
-                Text("Net: --")
+                Text("CPU: \(Int(stats.cpuPercent))%")
+                Text("RAM: \(Int(stats.ramUsedPercent))%")
+                Text("Net: \(stats.networkReachable ? "Reachable" : "Offline")")
+                Text("DL: \(formatBytes(stats.downloadRate))/s")
             }
             Divider()
             Button("Quit Mochi", action: onQuit)
                 .keyboardShortcut(.escape, modifiers: [])
         }
         .frame(width: 220)
+    }
+
+    private func formatBytes(_ bytes: Double) -> String {
+        let kb = bytes / 1024
+        let mb = kb / 1024
+        if mb >= 1 {
+            return String(format: "%.1f MB", mb)
+        } else if kb >= 1 {
+            return String(format: "%.0f KB", kb)
+        } else {
+            return String(format: "%.0f B", bytes)
+        }
     }
 }
 #endif
