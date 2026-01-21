@@ -7,16 +7,22 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "MochiCLI", targets: ["Mochi"])
+        .executable(name: "Mochi", targets: ["MochiApp"]),
+        .library(name: "MochiCore", targets: ["MochiCore"])
     ],
     targets: [
+        .target(
+            name: "MochiCore",
+            path: "MochiCore"
+        ),
         .executableTarget(
-            name: "Mochi",
+            name: "MochiApp",
+            dependencies: ["MochiCore"],
             path: "Mochi"
         ),
         .testTarget(
             name: "MochiTests",
-            dependencies: ["Mochi"],
+            dependencies: ["MochiCore"],
             path: "MochiTests"
         )
     ]

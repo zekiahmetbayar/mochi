@@ -1,5 +1,5 @@
 import XCTest
-@testable import Mochi
+@testable import MochiCore
 
 final class BootstrapTests: XCTestCase {
     func testStatusIsReady() {
