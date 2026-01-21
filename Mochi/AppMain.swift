@@ -5,6 +5,7 @@ import MochiCore
 @main
 struct MochiApp: App {
     @NSApplicationDelegateAdaptor(OverlayAppDelegate.self) var appDelegate
+    @StateObject private var overlayBridge = OverlayBridge.shared
 
     var body: some Scene {
         Settings {
@@ -16,15 +17,18 @@ struct MochiApp: App {
 final class OverlayAppDelegate: NSObject, NSApplicationDelegate {
     private var overlayController: OverlayWindowController?
     private let lifecycle = OverlayLifecycle()
+    weak var overlayBridge: OverlayBridge? = OverlayBridge.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let content = ContentView().environmentObject(OverlayBridge.shared)
         overlayController = OverlayWindowController(
-            contentView: ContentView(),
+            contentView: content,
             petHeight: 220,
             petOverlap: 20
         )
         if let overlayController {
             lifecycle.setController(overlayController)
+            overlayBridge?.controller = overlayController
         }
         lifecycle.start()
     }
