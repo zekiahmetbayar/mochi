@@ -66,7 +66,7 @@ public final class SystemMonitor: ObservableObject {
 
     public init(
         cpuProvider: CPUProviding = defaultCPUProvider(),
-        memoryProvider: MemoryProviding = MemoryStub(),
+        memoryProvider: MemoryProviding = defaultMemoryProvider(),
         networkProvider: NetworkProviding = NetworkStub(),
         downloadProvider: DownloadProviding = DownloadStub(),
         pollInterval: TimeInterval = 1.0,
@@ -134,6 +134,14 @@ public func defaultCPUProvider() -> CPUProviding {
     return CPUMachProvider()
 #else
     return CPUStub()
+#endif
+}
+
+public func defaultMemoryProvider() -> MemoryProviding {
+#if os(macOS)
+    return MemoryMachProvider()
+#else
+    return MemoryStub()
 #endif
 }
 
