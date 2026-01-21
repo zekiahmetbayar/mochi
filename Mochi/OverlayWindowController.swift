@@ -12,8 +12,8 @@ final class OverlayWindowController: NSWindowController, OverlayControlling {
     init(
         contentView: some View,
         screen: NSScreen? = NSScreen.main,
-        petHeight: CGFloat = 48,
-        petOverlap: CGFloat = 8
+        petHeight: CGFloat = 160,
+        petOverlap: CGFloat = 12
     ) {
         self.menuBarHeight = NSStatusBar.system.thickness
         self.petHeight = petHeight

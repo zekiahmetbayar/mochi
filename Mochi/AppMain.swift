@@ -18,7 +18,11 @@ final class OverlayAppDelegate: NSObject, NSApplicationDelegate {
     private let lifecycle = OverlayLifecycle()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        overlayController = OverlayWindowController(contentView: ContentView())
+        overlayController = OverlayWindowController(
+            contentView: ContentView(),
+            petHeight: 220,
+            petOverlap: 20
+        )
         if let overlayController {
             lifecycle.setController(overlayController)
         }
