@@ -4,10 +4,30 @@ import MochiCore
 
 @main
 struct MochiApp: App {
+    @NSApplicationDelegateAdaptor(OverlayAppDelegate.self) var appDelegate
+
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        Settings {
+            EmptyView()
         }
+    }
+}
+
+final class OverlayAppDelegate: NSObject, NSApplicationDelegate {
+    private var overlayController: OverlayWindowController?
+    private let lifecycle = OverlayLifecycle()
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        overlayController = OverlayWindowController(contentView: ContentView())
+        if let overlayController {
+            lifecycle.setController(overlayController)
+        }
+        lifecycle.start()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        lifecycle.stop()
+        overlayController = nil
     }
 }
 #else
