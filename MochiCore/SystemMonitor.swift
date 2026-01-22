@@ -20,30 +20,31 @@ public protocol NetworkProviding {
     func isReachable() -> Bool
 }
 
-public protocol DownloadProviding {
-    /// Returns current download rate in bytes per second.
-    func downloadRate() -> Double?
-}
-
 public struct SystemStats: Equatable {
     public var cpuPercent: Double
     public var cpuTemp: Double?
+    public var cpuHot: Bool
     public var ramUsedPercent: Double
     public var networkReachable: Bool
     public var downloadRate: Double
+    public var downloadHeavy: Bool
 
     public init(
         cpuPercent: Double = 0,
         cpuTemp: Double? = nil,
+        cpuHot: Bool = false,
         ramUsedPercent: Double = 0,
         networkReachable: Bool = true,
-        downloadRate: Double = 0
+        downloadRate: Double = 0,
+        downloadHeavy: Bool = false
     ) {
         self.cpuPercent = cpuPercent
         self.cpuTemp = cpuTemp
+        self.cpuHot = cpuHot
         self.ramUsedPercent = ramUsedPercent
         self.networkReachable = networkReachable
         self.downloadRate = downloadRate
+        self.downloadHeavy = downloadHeavy
     }
 }
 
@@ -63,12 +64,14 @@ public final class SystemMonitor: ObservableObject {
     private let queue: DispatchQueue
     private var timer: DispatchSourceTimer?
     private var cpuFilter = EmaFilter(alpha: 0.25)
+    private var cpuHotHysteresis = CPULoadHysteresis()
+    private var downloadHysteresis = DownloadHysteresis()
 
     public init(
         cpuProvider: CPUProviding = defaultCPUProvider(),
         memoryProvider: MemoryProviding = defaultMemoryProvider(),
         networkProvider: NetworkProviding = defaultNetworkProvider(),
-        downloadProvider: DownloadProviding = DownloadStub(),
+        downloadProvider: DownloadProviding = defaultDownloadProvider(),
         pollInterval: TimeInterval = 1.0,
         queue: DispatchQueue = DispatchQueue(label: "com.mochi.systemmonitor")
     ) {
@@ -104,12 +107,22 @@ public final class SystemMonitor: ObservableObject {
         let ram = memoryProvider.ramUsedPercent() ?? stats.ramUsedPercent
         let reachable = networkProvider.isReachable()
         let download = downloadProvider.downloadRate() ?? stats.downloadRate
+        let cpuHot = cpuHotHysteresis.update(
+            percent: clampPercent(cpu),
+            dt: pollInterval
+        )
+        let heavy = downloadHysteresis.update(
+            rate: max(download, 0),
+            dt: pollInterval
+        )
         let next = SystemStats(
             cpuPercent: clampPercent(cpu),
             cpuTemp: stats.cpuTemp,
+            cpuHot: cpuHot,
             ramUsedPercent: clampPercent(ram),
             networkReachable: reachable,
-            downloadRate: max(download, 0)
+            downloadRate: max(download, 0),
+            downloadHeavy: heavy
         )
         publish(next)
     }
@@ -150,6 +163,14 @@ public func defaultNetworkProvider() -> NetworkProviding {
     return NetworkPathProvider()
 #else
     return NetworkStub()
+#endif
+}
+
+public func defaultDownloadProvider() -> DownloadProviding {
+#if os(macOS)
+    return GetIfAddrsDownloadProvider()
+#else
+    return DownloadStub()
 #endif
 }
 

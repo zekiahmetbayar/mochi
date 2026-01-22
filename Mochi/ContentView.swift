@@ -12,18 +12,28 @@ struct ContentView: View {
     private let spriteSize = CGSize(width: 96, height: 72)
     private let menuBarHeight = NSStatusBar.system.thickness
 
-    private let demoAnimation = SpriteAnimation(
+    private let idleAnimation = SpriteAnimation(
         frames: [
             SpriteFrame(imageName: "mochi_idle_0", duration: 0.1),
             SpriteFrame(imageName: "mochi_idle_1", duration: 0.1)
         ],
         loop: true
     )
+    private let bagAnimation = SpriteAnimation(
+        frames: [
+            SpriteFrame(imageName: "mochi_bag_0", duration: 0.2)
+        ],
+        loop: true
+    )
+
+    private var currentAnimation: SpriteAnimation {
+        systemMonitor.stats.downloadHeavy ? bagAnimation : idleAnimation
+    }
 
     var body: some View {
         GeometryReader { geo in
             MochiOverlayView(
-                animation: demoAnimation,
+                animation: currentAnimation,
                 spriteSize: spriteSize,
                 menuBarHeight: menuBarHeight,
                 positionX: physics.positionX,
@@ -100,9 +110,11 @@ struct SettingsPopoverView: View {
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 Text("CPU: \(Int(stats.cpuPercent))%")
+                Text("CPU Hot: \(stats.cpuHot ? "On" : "Off")")
                 Text("RAM: \(Int(stats.ramUsedPercent))%")
                 Text("Net: \(stats.networkReachable ? "Reachable" : "Offline")")
                 Text("DL: \(formatBytes(stats.downloadRate))/s")
+                Text("Bag mode: \(stats.downloadHeavy ? "On" : "Off")")
             }
             Divider()
             Button("Quit Mochi", action: onQuit)
