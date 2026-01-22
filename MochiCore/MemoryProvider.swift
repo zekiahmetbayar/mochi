@@ -27,9 +27,10 @@ public final class MemoryMachProvider: MemoryLoadProviding {
         let speculative = UInt64(stats.speculative_count) * pageSize
         let free = UInt64(stats.free_count) * pageSize
 
-        // macOS uses compressed memory; count it toward used.
-        let used = active + inactive + wired + compressed + speculative - purgeable
-        let total = used + free
+        // Count only active + wired + compressed as "used" to match Activity Monitor closer.
+        // Inactive/speculative/purgeable are reclaimable, so include them in available.
+        let used = active + wired + compressed
+        let total = used + inactive + speculative + free + purgeable
         guard total > 0 else { return nil }
         return Double(used) / Double(total) * 100.0
     }

@@ -19,7 +19,7 @@ struct ContentView: View {
     @State private var behavior: CatBehavior = .walk
     @State private var behaviorDeadline: Date = .now
     @State private var isHovered: Bool = false
-    private let timer = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
+    private let timer = Timer.publish(every: 1.0 / 24.0, on: .main, in: .common).autoconnect()
     private let baseSpriteSize = CGSize(width: 64, height: 32)
     private let menuBarHeight = NSStatusBar.system.thickness
     private let playAreaWidth: CGFloat

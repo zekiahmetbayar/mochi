@@ -63,6 +63,7 @@ public final class SystemMonitor: ObservableObject {
     private let downloadProvider: DownloadProviding
     private let queue: DispatchQueue
     private var timer: DispatchSourceTimer?
+    private var lastPublished: SystemStats?
     private var cpuFilter = EmaFilter(alpha: 0.25)
     private var cpuHotHysteresis = CPULoadHysteresis()
     private var downloadHysteresis = DownloadHysteresis()
@@ -124,19 +125,35 @@ public final class SystemMonitor: ObservableObject {
             downloadRate: max(download, 0),
             downloadHeavy: heavy
         )
-        publish(next)
+        publishIfNeeded(next)
     }
 
-    private func publish(_ next: SystemStats) {
+    private func publishIfNeeded(_ next: SystemStats) {
+        if let last = lastPublished, !isSignificantChange(from: last, to: next) {
+            return
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.stats = next
             self.onUpdate?(next)
+            self.lastPublished = next
         }
     }
 
     private func clampPercent(_ value: Double) -> Double {
         min(max(value, 0), 100)
+    }
+
+    private func isSignificantChange(from old: SystemStats, to new: SystemStats) -> Bool {
+        let cpuDelta = abs(old.cpuPercent - new.cpuPercent)
+        let ramDelta = abs(old.ramUsedPercent - new.ramUsedPercent)
+        let dlDelta = abs(old.downloadRate - new.downloadRate)
+        return cpuDelta > 0.5
+            || ramDelta > 0.5
+            || dlDelta > 5_000 // ~5 KB/s
+            || old.cpuHot != new.cpuHot
+            || old.networkReachable != new.networkReachable
+            || old.downloadHeavy != new.downloadHeavy
     }
 }
 
