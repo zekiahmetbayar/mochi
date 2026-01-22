@@ -251,6 +251,7 @@ struct ContentView: View {
         SettingsPopoverView(
             state: $settings.state,
             stats: viewModel.stats,
+            startAtLoginSupported: settings.startAtLoginSupported,
             onQuit: { overlayBridge.quitApp() }
         )
         .padding()
@@ -277,6 +278,7 @@ struct ContentView: View {
 struct SettingsPopoverView: View {
     @Binding var state: SettingsState
     let stats: SystemStats
+    let startAtLoginSupported: Bool
     let onQuit: () -> Void
 
     var body: some View {
@@ -284,7 +286,13 @@ struct SettingsPopoverView: View {
             Text("Settings").font(.headline)
             Toggle("Click-through overlay", isOn: $state.clickThrough)
             Toggle("Show debug overlay", isOn: $state.showDebugOverlay)
-            Toggle("Start at login (pref only)", isOn: $state.startAtLogin)
+            Toggle("Start at login", isOn: $state.startAtLogin)
+                .disabled(!startAtLoginSupported)
+            if !startAtLoginSupported {
+                Text("Start at login not supported in this build.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
 
             Picker("Scale", selection: $state.scale) {
                 Text("1×").tag(1.0)
