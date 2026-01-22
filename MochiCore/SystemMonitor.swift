@@ -64,6 +64,10 @@ public final class SystemMonitor: ObservableObject {
     private let queue: DispatchQueue
     private var timer: DispatchSourceTimer?
     private var lastPublished: SystemStats?
+    private var pollCount: Int = 0
+    private var publishCount: Int = 0
+    private var lastMetricsLog: Date = Date()
+    private let metricsEnabled: Bool = ProcessInfo.processInfo.environment["MOCHI_METRICS"] != nil
     private var cpuFilter = EmaFilter(alpha: 0.25)
     private var cpuHotHysteresis = CPULoadHysteresis()
     private var downloadHysteresis = DownloadHysteresis()
@@ -87,6 +91,10 @@ public final class SystemMonitor: ObservableObject {
 
     public func start() {
         stop()
+        pollCount = 0
+        publishCount = 0
+        lastPublished = nil
+        lastMetricsLog = Date()
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now(), repeating: pollInterval, leeway: .milliseconds(200))
         timer.setEventHandler { [weak self] in
@@ -103,6 +111,7 @@ public final class SystemMonitor: ObservableObject {
 
     /// Executes a single poll cycle using providers.
     internal func pollOnce() {
+        pollCount += 1
         let rawCpu = cpuProvider.cpuPercent() ?? stats.cpuPercent
         let cpu = cpuFilter.update(sample: clampPercent(rawCpu))
         let ram = memoryProvider.ramUsedPercent() ?? stats.ramUsedPercent
@@ -126,6 +135,7 @@ public final class SystemMonitor: ObservableObject {
             downloadHeavy: heavy
         )
         publishIfNeeded(next)
+        logMetricsIfNeeded()
     }
 
     private func publishIfNeeded(_ next: SystemStats) {
@@ -137,6 +147,7 @@ public final class SystemMonitor: ObservableObject {
             self.stats = next
             self.onUpdate?(next)
             self.lastPublished = next
+            self.publishCount += 1
         }
     }
 
@@ -154,6 +165,23 @@ public final class SystemMonitor: ObservableObject {
             || old.cpuHot != new.cpuHot
             || old.networkReachable != new.networkReachable
             || old.downloadHeavy != new.downloadHeavy
+    }
+
+    private func logMetricsIfNeeded() {
+        guard metricsEnabled else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastMetricsLog) >= 30 else { return }
+        let publishRate = pollCount == 0 ? 0.0 : Double(publishCount) / Double(pollCount)
+        let metrics = String(
+            format: "[MochiMetrics] polls=%d publishes=%d publishRate=%.2f",
+            pollCount,
+            publishCount,
+            publishRate
+        )
+        print(metrics)
+        lastMetricsLog = now
+        pollCount = 0
+        publishCount = 0
     }
 }
 
