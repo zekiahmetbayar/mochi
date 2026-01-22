@@ -47,12 +47,25 @@ final class OverlayAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func currentMenuBarScreen() -> NSScreen {
-        let snapshots = NSScreen.screens.map {
-            ScreenSnapshot(frame: $0.frame, visibleFrame: $0.visibleFrame)
+        let snapshots = NSScreen.screens.map { screen in
+            ScreenSnapshot(
+                frame: ScreenRect(x: screen.frame.origin.x,
+                                  y: screen.frame.origin.y,
+                                  width: screen.frame.size.width,
+                                  height: screen.frame.size.height),
+                visibleFrame: ScreenRect(x: screen.visibleFrame.origin.x,
+                                         y: screen.visibleFrame.origin.y,
+                                         width: screen.visibleFrame.size.width,
+                                         height: screen.visibleFrame.size.height)
+            )
         }
         if let selected = MenuBarScreenSelector.selectMenuBarScreen(from: snapshots),
            let match = NSScreen.screens.first(where: {
-               $0.frame == selected.frame && $0.visibleFrame == selected.visibleFrame
+               screen in
+               screen.frame.origin.x == selected.frame.x &&
+               screen.frame.origin.y == selected.frame.y &&
+               screen.frame.size.width == selected.frame.width &&
+               screen.frame.size.height == selected.frame.height
            }) {
             return match
         }

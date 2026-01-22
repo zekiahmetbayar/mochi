@@ -1,17 +1,31 @@
-import Foundation
+public struct ScreenRect: Equatable {
+    public let x: Double
+    public let y: Double
+    public let width: Double
+    public let height: Double
+
+    public init(x: Double, y: Double, width: Double, height: Double) {
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    }
+
+    public var maxY: Double { y + height }
+}
 
 public struct ScreenSnapshot: Equatable {
-    public let frame: CGRect
-    public let visibleFrame: CGRect
+    public let frame: ScreenRect
+    public let visibleFrame: ScreenRect
 
-    public init(frame: CGRect, visibleFrame: CGRect) {
+    public init(frame: ScreenRect, visibleFrame: ScreenRect) {
         self.frame = frame
         self.visibleFrame = visibleFrame
     }
 
     /// Heuristic menu bar height (frame top inset minus visible frame top).
-    public var menuBarInset: CGFloat {
-        (frame.origin.y + frame.height) - (visibleFrame.origin.y + visibleFrame.height)
+    public var menuBarInset: Double {
+        frame.maxY - visibleFrame.maxY
     }
 }
 

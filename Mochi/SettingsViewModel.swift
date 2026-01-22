@@ -11,7 +11,7 @@ final class SettingsViewModel: ObservableObject {
         didSet {
             if !isApplyingStartAtLogin,
                state.startAtLogin != oldValue.startAtLogin {
-                applyStartAtLogin(desired: state.startAtLogin, fallback: oldValue.startAtLogin)
+                applyStartAtLogin(state.startAtLogin, fallback: oldValue.startAtLogin)
             }
             save()
         }

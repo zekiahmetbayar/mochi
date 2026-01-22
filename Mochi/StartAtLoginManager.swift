@@ -30,7 +30,7 @@ final class StartAtLoginManager: StartAtLoginControlling {
             if enable {
                 try SMAppService.mainApp.register()
             } else {
-                SMAppService.mainApp.unregister()
+                try SMAppService.mainApp.unregister()
             }
             return true
         } catch {
