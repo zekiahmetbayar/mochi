@@ -7,6 +7,7 @@ import MochiCore
 final class MochiViewModel: ObservableObject {
     @Published var animation: SpriteAnimation
     @Published var stats: SystemStats
+    @Published var mood: MochiMood = .normal
     @Published var speedMultiplier: Double = 1.0
 
     private let monitor: SystemMonitor
@@ -45,6 +46,7 @@ final class MochiViewModel: ObservableObject {
             self.lastUpdate = currentTime
 
             let mochiState = self.stateMachine.update(stats: stats, dt: dt)
+            self.mood = mochiState.mood
             self.animation = self.animation(for: mochiState.mood)
             self.speedMultiplier = mochiState.speedMultiplier
             self.stats = stats
@@ -68,7 +70,7 @@ final class MochiViewModel: ObservableObject {
         }
     }
 
-    private static let idleAnimation = SpriteAnimation(
+    static let idleAnimation = SpriteAnimation(
         frames: [
             SpriteFrame(imageName: "mochi_idle_0", duration: 0.12),
             SpriteFrame(imageName: "mochi_idle_1", duration: 0.12)
@@ -76,28 +78,63 @@ final class MochiViewModel: ObservableObject {
         loop: true
     )
 
-    private static let sleepAnimation = SpriteAnimation(
+    static let walkAnimation = SpriteAnimation(
+        frames: [
+            SpriteFrame(imageName: "mochi_walk_0", duration: 0.12),
+            SpriteFrame(imageName: "mochi_walk_1", duration: 0.12),
+            SpriteFrame(imageName: "mochi_walk_2", duration: 0.12),
+            SpriteFrame(imageName: "mochi_walk_3", duration: 0.12)
+        ],
+        loop: true
+    )
+
+    static let sitAnimation = SpriteAnimation(
+        frames: [
+            SpriteFrame(imageName: "mochi_sit_0", duration: 0.4)
+        ],
+        loop: true
+    )
+
+    static let lookAnimation = SpriteAnimation(
+        frames: [
+            SpriteFrame(imageName: "mochi_look_0", duration: 0.35),
+            SpriteFrame(imageName: "mochi_look_1", duration: 0.2)
+        ],
+        loop: true
+    )
+
+    static let rollAnimation = SpriteAnimation(
+        frames: [
+            SpriteFrame(imageName: "mochi_roll_0", duration: 0.14),
+            SpriteFrame(imageName: "mochi_roll_1", duration: 0.14),
+            SpriteFrame(imageName: "mochi_roll_2", duration: 0.14),
+            SpriteFrame(imageName: "mochi_roll_1", duration: 0.14)
+        ],
+        loop: true
+    )
+
+    static let sleepAnimation = SpriteAnimation(
         frames: [
             SpriteFrame(imageName: "mochi_sleep_0", duration: 0.25)
         ],
         loop: true
     )
 
-    private static let sweatAnimation = SpriteAnimation(
+    static let sweatAnimation = SpriteAnimation(
         frames: [
             SpriteFrame(imageName: "mochi_sweat_0", duration: 0.2)
         ],
         loop: true
     )
 
-    private static let chonkAnimation = SpriteAnimation(
+    static let chonkAnimation = SpriteAnimation(
         frames: [
             SpriteFrame(imageName: "mochi_chonk_0", duration: 0.2)
         ],
         loop: true
     )
 
-    private static let bagAnimation = SpriteAnimation(
+    static let bagAnimation = SpriteAnimation(
         frames: [
             SpriteFrame(imageName: "mochi_bag_0", duration: 0.2)
         ],

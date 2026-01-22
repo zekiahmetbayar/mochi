@@ -25,4 +25,12 @@ final class MochiPhysicsTests: XCTestCase {
         XCTAssertLessThanOrEqual(positions.max() ?? 0, 200.0)
         XCTAssertGreaterThanOrEqual(positions.min() ?? 0, 0.0)
     }
+
+    func testSpeedMultiplierAllowsFullStop() {
+        var physics = MochiPhysics(boundsWidth: 100, seed: 7, speed: 40)
+        physics.setSpeedMultiplier(0)
+        XCTAssertEqual(physics.velocityX, 0)
+        physics.step(dt: 1.0)
+        XCTAssertEqual(physics.positionX, 50, accuracy: 0.001) // stayed put at center
+    }
 }

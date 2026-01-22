@@ -40,6 +40,19 @@ final class OverlayGeometryTests: XCTestCase {
         XCTAssertEqual(frame.y, 600)
     }
 
+    func testOverlayWidthClampsAndAnchorsRight() {
+        let frame = OverlayGeometry.computeFrame(
+            screenWidth: 1440,
+            screenHeight: 900,
+            menuBarHeight: 24,
+            petHeight: 32,
+            petOverlap: 0,
+            overlayWidth: 200
+        )
+        XCTAssertEqual(frame.width, 200)
+        XCTAssertEqual(frame.x, 1240)
+    }
+
     func testSpriteOriginAlignsToMenuBarBaseline() {
         let y = OverlayGeometry.computeSpriteOriginY(
             menuBarHeight: 24,

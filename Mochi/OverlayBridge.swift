@@ -14,6 +14,10 @@ final class OverlayBridge: ObservableObject {
         didSet { controller?.window?.ignoresMouseEvents = clickThrough }
     }
 
+    func movePet(toX x: Double) {
+        controller?.move(toX: x)
+    }
+
     func toggleClickThrough() {
         clickThrough.toggle()
     }

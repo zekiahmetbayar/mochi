@@ -21,14 +21,17 @@ public enum OverlayGeometry {
         screenHeight: Double,
         menuBarHeight: Double,
         petHeight: Double,
-        petOverlap: Double = 0
+        petOverlap: Double = 0,
+        overlayWidth: Double? = nil
     ) -> Frame {
         let clampedMenuBar = max(menuBarHeight, 0)
         let clampedPet = max(petHeight, 0)
         let clampedOverlap = max(0, min(petOverlap, clampedPet))
+        let clampedOverlayWidth = max(min(overlayWidth ?? screenWidth, screenWidth), 0)
         let totalHeight = clampedMenuBar + clampedPet - clampedOverlap
         let yOrigin = screenHeight - totalHeight
-        return Frame(x: 0, y: yOrigin, width: screenWidth, height: totalHeight)
+        let xOrigin = screenWidth - clampedOverlayWidth
+        return Frame(x: xOrigin, y: yOrigin, width: clampedOverlayWidth, height: totalHeight)
     }
 
     /// Computes the sprite's top-left Y origin so its bottom aligns with the menu bar baseline,

@@ -3,6 +3,7 @@ import Foundation
 public protocol OverlayControlling: AnyObject {
     func show()
     func hide()
+    func move(toX: Double)
 }
 
 public enum OverlayLifecycleState: Equatable {

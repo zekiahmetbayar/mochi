@@ -8,23 +8,28 @@ final class OverlayWindowController: NSWindowController, OverlayControlling {
     private let menuBarHeight: CGFloat
     private let petHeight: CGFloat
     private let petOverlap: CGFloat
+    private let playAreaWidth: CGFloat?
+    private let screen: NSScreen
 
     init(
         contentView: some View,
         screen: NSScreen? = NSScreen.main,
         petHeight: CGFloat = 160,
-        petOverlap: CGFloat = 12
+        petOverlap: CGFloat = 12,
+        playAreaWidth: CGFloat? = nil
     ) {
         self.menuBarHeight = NSStatusBar.system.thickness
         self.petHeight = petHeight
         self.petOverlap = petOverlap
+        self.playAreaWidth = playAreaWidth
+        self.screen = screen ?? NSScreen.main ?? NSScreen.screens.first!
 
-        let screen = screen ?? NSScreen.main ?? NSScreen.screens.first!
         let frame = OverlayWindowController.makeFrame(
-            screen: screen,
+            screen: self.screen,
             menuBarHeight: self.menuBarHeight,
             petHeight: petHeight,
-            petOverlap: petOverlap
+            petOverlap: petOverlap,
+            playAreaWidth: playAreaWidth
         )
 
         let panel = NSPanel(
@@ -65,18 +70,27 @@ final class OverlayWindowController: NSWindowController, OverlayControlling {
         window?.orderOut(nil)
     }
 
+    func move(toX x: Double) {
+        guard let window else { return }
+        let maxX = screen.frame.width - window.frame.width
+        let clampedX = max(0, min(CGFloat(x), maxX))
+        window.setFrameOrigin(NSPoint(x: clampedX, y: window.frame.origin.y))
+    }
+
     private static func makeFrame(
         screen: NSScreen,
         menuBarHeight: CGFloat,
         petHeight: CGFloat,
-        petOverlap: CGFloat
+        petOverlap: CGFloat,
+        playAreaWidth: CGFloat?
     ) -> NSRect {
         let geometry = OverlayGeometry.computeFrame(
             screenWidth: Double(screen.frame.width),
             screenHeight: Double(screen.frame.height),
             menuBarHeight: Double(menuBarHeight),
             petHeight: Double(petHeight),
-            petOverlap: Double(petOverlap)
+            petOverlap: Double(petOverlap),
+            overlayWidth: playAreaWidth.map(Double.init)
         )
         return NSRect(
             x: geometry.x,

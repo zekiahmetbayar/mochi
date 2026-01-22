@@ -5,8 +5,10 @@ final class OverlayLifecycleTests: XCTestCase {
     private final class MockOverlayController: OverlayControlling {
         var showCount = 0
         var hideCount = 0
+        var moves: [Double] = []
         func show() { showCount += 1 }
         func hide() { hideCount += 1 }
+        func move(toX: Double) { moves.append(toX) }
     }
 
     func testStartShowsOverlayOnce() {

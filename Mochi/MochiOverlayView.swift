@@ -3,15 +3,13 @@ import SwiftUI
 import MochiCore
 
 /// Renders Mochi anchored to the menu bar baseline with optional hanging offset.
-struct MochiOverlayView<SpriteContent: View, SettingsContent: View>: View {
+struct MochiOverlayView<SpriteContent: View>: View {
     let animation: SpriteAnimation
     let spriteSize: CGSize
     let menuBarHeight: CGFloat
     let positionX: CGFloat   // left edge in points
     let hangOffset: CGFloat
-    @Binding var showSettings: Bool
     let spriteContent: (SpriteFrame) -> SpriteContent
-    let settingsContent: () -> SettingsContent
 
     var body: some View {
         GeometryReader { geo in
@@ -24,12 +22,9 @@ struct MochiOverlayView<SpriteContent: View, SettingsContent: View>: View {
                     y: spriteY + spriteSize.height / 2
                 )
                 .contentShape(Rectangle())
-                .onTapGesture { showSettings.toggle() }
-                .popover(isPresented: $showSettings, arrowEdge: .top, content: settingsContent)
         }
         .frame(
-            maxWidth: .infinity,
-            maxHeight: menuBarHeight + spriteSize.height,
+            height: menuBarHeight,
             alignment: .topLeading
         )
     }

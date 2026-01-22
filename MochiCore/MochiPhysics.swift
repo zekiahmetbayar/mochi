@@ -18,15 +18,19 @@ public struct MochiPhysics {
     public var speed: Double
     public var speedMultiplier: Double
     public var timeUntilTurn: Double
+    public var minTurnInterval: Double
+    public var maxTurnInterval: Double
     private var rng: SeededGenerator
 
-    public init(boundsWidth: Double, seed: UInt64 = 42, speed: Double = 60) {
+    public init(boundsWidth: Double, seed: UInt64 = 42, speed: Double = 60, minTurnInterval: Double = 2.0, maxTurnInterval: Double = 4.0) {
         self.boundsWidth = max(boundsWidth, 1)
         self.positionX = self.boundsWidth / 2
         self.speed = speed
         self.speedMultiplier = 1.0
         self.velocityX = speed
-        self.timeUntilTurn = 1.0
+        self.minTurnInterval = max(0.1, min(minTurnInterval, maxTurnInterval))
+        self.maxTurnInterval = max(self.minTurnInterval, maxTurnInterval)
+        self.timeUntilTurn = self.minTurnInterval
         self.rng = SeededGenerator(seed: seed)
     }
 
@@ -36,7 +40,7 @@ public struct MochiPhysics {
         timeUntilTurn -= dtClamped
         if timeUntilTurn <= 0 {
             chooseNewVelocity()
-            timeUntilTurn = 1.0 + random01() * 1.5 // between 1.0 and 2.5s
+            timeUntilTurn = minTurnInterval + random01() * (maxTurnInterval - minTurnInterval)
         }
 
         positionX += velocityX * dtClamped
@@ -59,7 +63,7 @@ public struct MochiPhysics {
 
     /// Adjusts movement speed multiplier (e.g., slower when chonky).
     public mutating func setSpeedMultiplier(_ multiplier: Double) {
-        let clamped = max(multiplier, 0.1)
+        let clamped = max(multiplier, 0)
         let direction = velocityX >= 0 ? 1.0 : -1.0
         speedMultiplier = clamped
         velocityX = direction * speed * speedMultiplier
