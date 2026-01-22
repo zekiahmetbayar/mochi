@@ -19,7 +19,47 @@ final class OverlayAppDelegate: NSObject, NSApplicationDelegate {
     private let lifecycle = OverlayLifecycle()
     weak var overlayBridge: OverlayBridge? = OverlayBridge.shared
 
+    private var screenObserver: NSObjectProtocol?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        buildOverlay(on: currentMenuBarScreen())
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.rebuildOverlayForScreenChange()
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        lifecycle.stop()
+        overlayController = nil
+        if let screenObserver {
+            NotificationCenter.default.removeObserver(screenObserver)
+        }
+    }
+
+    private func rebuildOverlayForScreenChange() {
+        lifecycle.stop()
+        overlayController = nil
+        buildOverlay(on: currentMenuBarScreen())
+    }
+
+    private func currentMenuBarScreen() -> NSScreen {
+        let snapshots = NSScreen.screens.map {
+            ScreenSnapshot(frame: $0.frame, visibleFrame: $0.visibleFrame)
+        }
+        if let selected = MenuBarScreenSelector.selectMenuBarScreen(from: snapshots),
+           let match = NSScreen.screens.first(where: {
+               $0.frame == selected.frame && $0.visibleFrame == selected.visibleFrame
+           }) {
+            return match
+        }
+        return NSScreen.main ?? NSScreen.screens.first!
+    }
+
+    private func buildOverlay(on screen: NSScreen) {
         let statusHeight = NSStatusBar.system.thickness
         let spriteHeight = max(min(statusHeight - 2, 26), 18)
         let spriteWidth = spriteHeight * 2 // keep 2:1 aspect
@@ -29,6 +69,7 @@ final class OverlayAppDelegate: NSObject, NSApplicationDelegate {
         let content = ContentView(playAreaWidth: spriteWidth).environmentObject(OverlayBridge.shared)
         overlayController = OverlayWindowController(
             contentView: content,
+            screen: screen,
             petHeight: petHeight,
             petOverlap: petOverlap,
             playAreaWidth: spriteWidth
@@ -38,11 +79,6 @@ final class OverlayAppDelegate: NSObject, NSApplicationDelegate {
             overlayBridge?.controller = overlayController
         }
         lifecycle.start()
-    }
-
-    func applicationWillTerminate(_ notification: Notification) {
-        lifecycle.stop()
-        overlayController = nil
     }
 }
 #else
