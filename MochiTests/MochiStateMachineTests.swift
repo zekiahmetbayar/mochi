@@ -65,6 +65,25 @@ final class MochiStateMachineTests: XCTestCase {
         let state = sm.update(stats: stats, dt: 3)
         XCTAssertEqual(state.mood, .sleeping)
     }
+
+    func testAntiFlickerIgnoresShortBursts() {
+        let sm = MochiStateMachine()
+        // Alternating high/low bursts shorter than enter window should not trigger bag.
+        var state = sm.update(stats: throughput(150_000), dt: 0.4)
+        XCTAssertEqual(state.mood, .normal)
+        state = sm.update(stats: throughput(0), dt: 0.4)
+        XCTAssertEqual(state.mood, .normal)
+        state = sm.update(stats: throughput(150_000), dt: 0.4)
+        XCTAssertEqual(state.mood, .normal)
+        state = sm.update(stats: throughput(0), dt: 0.4)
+        XCTAssertEqual(state.mood, .normal)
+
+        // Sustained high for ~3s should enter bag mode.
+        state = sm.update(stats: throughput(150_000), dt: 1.0)
+        state = sm.update(stats: throughput(150_000), dt: 1.0)
+        state = sm.update(stats: throughput(150_000), dt: 1.0)
+        XCTAssertEqual(state.mood, .carrying)
+    }
 }
 
 // MARK: - Helpers

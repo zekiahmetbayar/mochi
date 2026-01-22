@@ -7,33 +7,16 @@ struct ContentView: View {
     @State private var physics = MochiPhysics(boundsWidth: 400, seed: 99, speed: 60)
     @State private var lastTick: Date = .now
     @State private var showSettings = false
-    @StateObject private var systemMonitor = SystemMonitor()
+    @StateObject private var viewModel = MochiViewModel()
     private let timer = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
     private let spriteSize = CGSize(width: 96, height: 72)
     private let menuBarHeight = NSStatusBar.system.thickness
-
-    private let idleAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_idle_0", duration: 0.1),
-            SpriteFrame(imageName: "mochi_idle_1", duration: 0.1)
-        ],
-        loop: true
-    )
-    private let bagAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_bag_0", duration: 0.2)
-        ],
-        loop: true
-    )
-
-    private var currentAnimation: SpriteAnimation {
-        systemMonitor.stats.downloadHeavy ? bagAnimation : idleAnimation
-    }
+    private let baseSpeed: Double = 60
 
     var body: some View {
         GeometryReader { geo in
             MochiOverlayView(
-                animation: currentAnimation,
+                animation: viewModel.animation,
                 spriteSize: spriteSize,
                 menuBarHeight: menuBarHeight,
                 positionX: physics.positionX,
@@ -48,17 +31,18 @@ struct ContentView: View {
                 let travelWidth = max(geo.size.width - spriteSize.width, 1)
                 physics.updateBounds(width: travelWidth)
                 lastTick = .now
-                systemMonitor.start()
+                viewModel.start()
             }
             .onReceive(timer) { date in
                 let dt = date.timeIntervalSince(lastTick)
                 lastTick = date
                 let travelWidth = max(geo.size.width - spriteSize.width, 1)
                 physics.updateBounds(width: travelWidth)
+                physics.setSpeedMultiplier(viewModel.speedMultiplier)
                 physics.step(dt: dt)
             }
             .onDisappear {
-                systemMonitor.stop()
+                viewModel.stop()
             }
         }
         .background(Color.clear)
@@ -88,7 +72,7 @@ struct ContentView: View {
     private func settingsContent() -> some View {
         SettingsPopoverView(
             clickThrough: $overlayBridge.clickThrough,
-            stats: systemMonitor.stats,
+            stats: viewModel.stats,
             onQuit: { overlayBridge.quitApp() }
         )
         .padding()

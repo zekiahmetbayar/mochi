@@ -16,6 +16,7 @@ public struct MochiPhysics {
     public var velocityX: Double
     public var boundsWidth: Double
     public var speed: Double
+    public var speedMultiplier: Double
     public var timeUntilTurn: Double
     private var rng: SeededGenerator
 
@@ -23,6 +24,7 @@ public struct MochiPhysics {
         self.boundsWidth = max(boundsWidth, 1)
         self.positionX = self.boundsWidth / 2
         self.speed = speed
+        self.speedMultiplier = 1.0
         self.velocityX = speed
         self.timeUntilTurn = 1.0
         self.rng = SeededGenerator(seed: seed)
@@ -55,9 +57,17 @@ public struct MochiPhysics {
         positionX = min(max(positionX, 0), boundsWidth)
     }
 
+    /// Adjusts movement speed multiplier (e.g., slower when chonky).
+    public mutating func setSpeedMultiplier(_ multiplier: Double) {
+        let clamped = max(multiplier, 0.1)
+        let direction = velocityX >= 0 ? 1.0 : -1.0
+        speedMultiplier = clamped
+        velocityX = direction * speed * speedMultiplier
+    }
+
     private mutating func chooseNewVelocity() {
         let direction = random01() > 0.5 ? 1.0 : -1.0
-        velocityX = direction * speed
+        velocityX = direction * speed * speedMultiplier
     }
 
     private mutating func random01() -> Double {
