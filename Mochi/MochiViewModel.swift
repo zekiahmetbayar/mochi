@@ -48,6 +48,12 @@ final class MochiViewModel: ObservableObject {
         showOnboarding = false
     }
 
+    func applySettings(_ settings: SettingsState) {
+        stateMachine.bagThreshold = settings.downloadThreshold
+        stateMachine.sweatThreshold = settings.cpuThreshold
+        stateMachine.chonkThreshold = settings.ramThreshold
+    }
+
     private func wire() {
         monitor.onUpdate = { [weak self] stats in
             guard let self else { return }

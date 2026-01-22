@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var lastTick: Date = .now
     @State private var showSettings = false
     @StateObject private var viewModel = MochiViewModel()
+    @StateObject private var settings = SettingsViewModel()
     @State private var behavior: CatBehavior = .walk
     @State private var behaviorDeadline: Date = .now
     @State private var isHovered: Bool = false
@@ -34,12 +35,15 @@ struct ContentView: View {
     /// Scale sprites so they fit comfortably inside the menu bar.
     private var spriteSize: CGSize {
         let targetHeight = max(min(menuBarHeight - 2, 26), 18)
-        let scale = targetHeight / baseSpriteSize.height
-        return CGSize(width: baseSpriteSize.width * scale, height: targetHeight)
+        // Allow upscale but clamp to ~2.5x menu bar height (up to 64px) to avoid spill.
+        let maxHeight = min(menuBarHeight * 2.5, 64)
+        let desiredHeight = min(targetHeight * settings.state.scale, maxHeight)
+        let scale = desiredHeight / baseSpriteSize.height
+        return CGSize(width: baseSpriteSize.width * scale, height: desiredHeight)
     }
 
     private var playAreaHeight: CGFloat {
-        menuBarHeight
+        max(menuBarHeight, spriteSize.height)
     }
 
     private func advanceBehavior(now: Date) {
@@ -145,6 +149,7 @@ struct ContentView: View {
                 viewModel.start()
                 ticker.start()
                 overlayBridge.movePet(toX: physics.positionX)
+                applySettings(settings.state)
             }
             .onReceive(ticker.$tick) { date in
                 let dt = date.timeIntervalSince(lastTick)
@@ -164,6 +169,9 @@ struct ContentView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
                 ticker.setFPS(inactiveFPS)
+            }
+            .onChange(of: settings.state) { newValue in
+                applySettings(newValue)
             }
             .overlay(alignment: .topTrailing) {
                 if viewModel.showOnboarding {
@@ -208,6 +216,19 @@ struct ContentView: View {
                                 .transition(.opacity.combined(with: .scale))
                                 .animation(.easeOut(duration: 0.2), value: isHovered)
                         }
+                        if settings.state.showDebugOverlay {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("CPU \(Int(viewModel.stats.cpuPercent))%")
+                                Text("RAM \(Int(viewModel.stats.ramUsedPercent))%")
+                                Text("DL \(formatBytes(viewModel.stats.downloadRate))/s")
+                            }
+                            .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                            .padding(4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(4)
+                            .offset(x: 4, y: -6)
+                            .transition(.opacity)
+                        }
                     }
             } else {
                 Text("Sprite missing")
@@ -228,23 +249,57 @@ struct ContentView: View {
 
     private func settingsContent() -> some View {
         SettingsPopoverView(
-            clickThrough: $overlayBridge.clickThrough,
+            state: $settings.state,
             stats: viewModel.stats,
             onQuit: { overlayBridge.quitApp() }
         )
         .padding()
     }
+
+    private func applySettings(_ state: SettingsState) {
+        overlayBridge.clickThrough = state.clickThrough
+        viewModel.applySettings(state)
+    }
+
+    private func formatBytes(_ bytes: Double) -> String {
+        let kb = bytes / 1024
+        let mb = kb / 1024
+        if mb >= 1 {
+            return String(format: "%.1f MB", mb)
+        } else if kb >= 1 {
+            return String(format: "%.0f KB", kb)
+        } else {
+            return String(format: "%.0f B", bytes)
+        }
+    }
 }
 
 struct SettingsPopoverView: View {
-    @Binding var clickThrough: Bool
+    @Binding var state: SettingsState
     let stats: SystemStats
     let onQuit: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Settings").font(.headline)
-            Toggle("Click-through overlay", isOn: $clickThrough)
+            Toggle("Click-through overlay", isOn: $state.clickThrough)
+            Toggle("Show debug overlay", isOn: $state.showDebugOverlay)
+            Toggle("Start at login (pref only)", isOn: $state.startAtLogin)
+
+            Picker("Scale", selection: $state.scale) {
+                Text("1×").tag(1.0)
+                Text("1.5×").tag(1.5)
+                Text("2×").tag(2.0)
+            }
+            .pickerStyle(.segmented)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Thresholds")
+                    .font(.subheadline).bold()
+                sliderRow(label: "CPU sweat", value: $state.cpuThreshold, range: 50...90, format: "%.0f%%")
+                sliderRow(label: "RAM chonk", value: $state.ramThreshold, range: 60...95, format: "%.0f%%")
+                sliderRow(label: "Download bag", value: $state.downloadThreshold, range: 50_000...400_000, format: "%.0f B/s")
+            }
             Divider()
             VStack(alignment: .leading, spacing: 4) {
                 Text("Debug (live)")
@@ -254,7 +309,7 @@ struct SettingsPopoverView: View {
                 Text("CPU Hot: \(stats.cpuHot ? "On" : "Off")")
                 Text("RAM: \(Int(stats.ramUsedPercent))%")
                 Text("Net: \(stats.networkReachable ? "Reachable" : "Offline")")
-                Text("DL: \(formatBytes(stats.downloadRate))/s")
+                Text("DL: \(SettingsPopoverView.formatBytes(stats.downloadRate))/s")
                 Text("Bag mode: \(stats.downloadHeavy ? "On" : "Off")")
             }
             Divider()
@@ -264,7 +319,20 @@ struct SettingsPopoverView: View {
         .frame(width: 220)
     }
 
-    private func formatBytes(_ bytes: Double) -> String {
+    private func sliderRow(label: String, value: Binding<Double>, range: ClosedRange<Double>, format: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack {
+                Text(label)
+                Spacer()
+                Text(String(format: format, value.wrappedValue))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Slider(value: value, in: range)
+        }
+    }
+
+    static func formatBytes(_ bytes: Double) -> String {
         let kb = bytes / 1024
         let mb = kb / 1024
         if mb >= 1 {
