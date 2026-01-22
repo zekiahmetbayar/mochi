@@ -9,23 +9,28 @@ final class MochiViewModel: ObservableObject {
     @Published var stats: SystemStats
     @Published var mood: MochiMood = .normal
     @Published var speedMultiplier: Double = 1.0
+    @Published var showOnboarding: Bool = false
 
     private let monitor: SystemMonitor
     private let stateMachine: MochiStateMachine
     private var lastUpdate: Date
     private let now: () -> Date
+    private let onboardingStore: OnboardingPersisting
 
     init(
         monitor: SystemMonitor = SystemMonitor(),
         stateMachine: MochiStateMachine = MochiStateMachine(),
+        onboardingStore: OnboardingPersisting = UserDefaultsOnboardingStore(),
         now: @escaping () -> Date = { Date() }
     ) {
         self.monitor = monitor
         self.stateMachine = stateMachine
+        self.onboardingStore = onboardingStore
         self.now = now
         self.animation = MochiViewModel.idleAnimation
         self.stats = monitor.stats
         self.lastUpdate = now()
+        self.showOnboarding = !onboardingStore.hasSeenOnboarding()
         wire()
     }
 
@@ -36,6 +41,11 @@ final class MochiViewModel: ObservableObject {
 
     func stop() {
         monitor.stop()
+    }
+
+    func dismissOnboarding() {
+        onboardingStore.setSeen()
+        showOnboarding = false
     }
 
     private func wire() {

@@ -19,7 +19,8 @@ struct ContentView: View {
     @State private var behavior: CatBehavior = .walk
     @State private var behaviorDeadline: Date = .now
     @State private var isHovered: Bool = false
-    private let timer = Timer.publish(every: 1.0 / 24.0, on: .main, in: .common).autoconnect()
+    @StateObject private var ticker = AnimationTicker(fps: 24, leewayMilliseconds: 12)
+    private let inactiveFPS: Double = 12
     private let baseSpriteSize = CGSize(width: 64, height: 32)
     private let menuBarHeight = NSStatusBar.system.thickness
     private let playAreaWidth: CGFloat
@@ -142,9 +143,10 @@ struct ContentView: View {
                 lastTick = .now
                 behaviorDeadline = .now
                 viewModel.start()
+                ticker.start()
                 overlayBridge.movePet(toX: physics.positionX)
             }
-            .onReceive(timer) { date in
+            .onReceive(ticker.$tick) { date in
                 let dt = date.timeIntervalSince(lastTick)
                 lastTick = date
                 advanceBehavior(now: date)
@@ -155,6 +157,23 @@ struct ContentView: View {
             }
             .onDisappear {
                 viewModel.stop()
+                ticker.stop()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                ticker.setFPS(24)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+                ticker.setFPS(inactiveFPS)
+            }
+            .overlay(alignment: .topTrailing) {
+                if viewModel.showOnboarding {
+                    OnboardingBubble(dismiss: {
+                        viewModel.dismissOnboarding()
+                    })
+                    .offset(x: -spriteSize.width * 0.5,
+                            y: -spriteSize.height * 0.6)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
         }
         .background(Color.clear)
@@ -255,6 +274,48 @@ struct SettingsPopoverView: View {
         } else {
             return String(format: "%.0f B", bytes)
         }
+    }
+}
+
+private struct OnboardingBubble: View {
+    let dismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "hand.point.up.left.fill")
+                .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("This is Mochi!")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("Click to open settings.")
+                    .font(.system(size: 11))
+                    .opacity(0.9)
+            }
+            Button(action: dismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.white.opacity(0.8))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.9), Color.cyan.opacity(0.85)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.white.opacity(0.4), lineWidth: 1)
+        )
+        .shadow(radius: 4, y: 2)
+        .onTapGesture { dismiss() }
     }
 }
 #endif
