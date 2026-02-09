@@ -10,6 +10,7 @@ final class SettingsStoreTests: XCTestCase {
 
         let original = SettingsState(
             clickThrough: true,
+            pinToMenuGap: true,
             startAtLogin: true,
             scale: 1.5,
             cpuThreshold: 80,

@@ -20,12 +20,17 @@ struct ContentView: View {
     @State private var behavior: CatBehavior = .walk
     @State private var behaviorDeadline: Date = .now
     @State private var isHovered: Bool = false
+    @State private var pinnedAnchorX: Double?
+    @State private var nextPinnedAnchorRefresh: Date = .distantPast
+    @State private var isResolvingPinnedAnchor: Bool = false
+    @State private var stationaryBehaviorIndex: Int = 0
     @StateObject private var ticker = AnimationTicker(fps: 24, leewayMilliseconds: 12)
     private let inactiveFPS: Double = 12
     private let baseSpriteSize = CGSize(width: 64, height: 32)
     private let menuBarHeight = NSStatusBar.system.thickness
     private let playAreaWidth: CGFloat
     private let menuBarWidth: CGFloat
+    private let stationaryBehaviors: [CatBehavior] = [.sit, .look, .nap]
 
     init(playAreaWidth: CGFloat = 240) {
         self.playAreaWidth = playAreaWidth
@@ -76,7 +81,66 @@ struct ContentView: View {
         }
     }
 
+    private func nextStationaryBehavior() -> CatBehavior {
+        let behavior = stationaryBehaviors[stationaryBehaviorIndex % stationaryBehaviors.count]
+        stationaryBehaviorIndex = (stationaryBehaviorIndex + 1) % stationaryBehaviors.count
+        return behavior
+    }
+
+    private func resetStationaryBehaviorCycle(now: Date) {
+        stationaryBehaviorIndex = 0
+        let next = nextStationaryBehavior()
+        behavior = next
+        behaviorDeadline = now.addingTimeInterval(behaviorDuration(next))
+    }
+
+    private func requestPinnedAnchor(travelWidth: CGFloat, now: Date) {
+        guard !isResolvingPinnedAnchor else { return }
+        isResolvingPinnedAnchor = true
+        // Throttle while probe measurement is in flight.
+        nextPinnedAnchorRefresh = now.addingTimeInterval(0.3)
+
+        overlayBridge.resolvePreferredPinnedX { raw in
+            DispatchQueue.main.async {
+                isResolvingPinnedAnchor = false
+                guard settings.state.pinToMenuGap else { return }
+                if let raw {
+                    pinnedAnchorX = min(max(raw, 0), Double(travelWidth))
+                    nextPinnedAnchorRefresh = Date().addingTimeInterval(2.0)
+                } else {
+                    if pinnedAnchorX == nil {
+                        pinnedAnchorX = min(max(physics.positionX, 0), Double(travelWidth))
+                    }
+                    nextPinnedAnchorRefresh = Date().addingTimeInterval(0.8)
+                }
+            }
+        }
+    }
+
+    private func applyPinnedMode(now: Date, travelWidth: CGFloat) {
+        if pinnedAnchorX == nil || now >= nextPinnedAnchorRefresh {
+            requestPinnedAnchor(travelWidth: travelWidth, now: now)
+        }
+
+        if now >= behaviorDeadline {
+            let next = nextStationaryBehavior()
+            behavior = next
+            behaviorDeadline = now.addingTimeInterval(behaviorDuration(next))
+        }
+
+        physics.updateBounds(width: travelWidth)
+        let fallback = min(max(physics.positionX, 0), Double(travelWidth))
+        let target = min(max(pinnedAnchorX ?? fallback, 0), Double(travelWidth))
+        physics.positionX = target
+        physics.setSpeedMultiplier(0)
+        overlayBridge.movePet(toX: target)
+    }
+
     private func applyBehaviorSpeed() {
+        if settings.state.pinToMenuGap {
+            physics.setSpeedMultiplier(0)
+            return
+        }
         if isHovered {
             physics.setSpeedMultiplier(0)
             return
@@ -124,7 +188,7 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geo in
             let areaWidth = playAreaWidth
-            let travelWidth = max(menuBarWidth - spriteSize.width, 1)
+            let travelWidth = max(menuBarWidth - playAreaWidth, 1)
             let animation = displayAnimation
 
             HStack(spacing: 0) {
@@ -150,10 +214,22 @@ struct ContentView: View {
                 ticker.start()
                 overlayBridge.movePet(toX: physics.positionX)
                 applySettings(settings.state)
+                if settings.state.pinToMenuGap {
+                    let now = Date()
+                    pinnedAnchorX = nil
+                    nextPinnedAnchorRefresh = .distantPast
+                    isResolvingPinnedAnchor = false
+                    resetStationaryBehaviorCycle(now: now)
+                    applyPinnedMode(now: now, travelWidth: travelWidth)
+                }
             }
             .onReceive(ticker.$tick) { date in
                 let dt = date.timeIntervalSince(lastTick)
                 lastTick = date
+                if settings.state.pinToMenuGap {
+                    applyPinnedMode(now: date, travelWidth: travelWidth)
+                    return
+                }
                 advanceBehavior(now: date)
                 physics.updateBounds(width: travelWidth)
                 applyBehaviorSpeed()
@@ -172,6 +248,23 @@ struct ContentView: View {
             }
             .onChange(of: settings.state) { newValue in
                 applySettings(newValue)
+            }
+            .onChange(of: settings.state.pinToMenuGap) { pinned in
+                let now = Date()
+                if pinned {
+                    pinnedAnchorX = nil
+                    nextPinnedAnchorRefresh = .distantPast
+                    isResolvingPinnedAnchor = false
+                    resetStationaryBehaviorCycle(now: now)
+                    applyPinnedMode(now: now, travelWidth: travelWidth)
+                } else {
+                    pinnedAnchorX = nil
+                    nextPinnedAnchorRefresh = .distantPast
+                    isResolvingPinnedAnchor = false
+                    stationaryBehaviorIndex = 0
+                    behavior = .walk
+                    behaviorDeadline = now.addingTimeInterval(behaviorDuration(.walk))
+                }
             }
             .overlay(alignment: .topTrailing) {
                 if viewModel.showOnboarding {
@@ -285,6 +378,7 @@ struct SettingsPopoverView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Settings").font(.headline)
             Toggle("Click-through overlay", isOn: $state.clickThrough)
+            Toggle("Pin to menu gap", isOn: $state.pinToMenuGap)
             Toggle("Show debug overlay", isOn: $state.showDebugOverlay)
             Toggle("Start at login", isOn: $state.startAtLogin)
                 .disabled(!startAtLoginSupported)

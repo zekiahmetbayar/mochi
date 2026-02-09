@@ -8,6 +8,7 @@ public protocol SettingsPersisting {
 public final class UserDefaultsSettingsStore: SettingsPersisting {
     private enum Key: String {
         case clickThrough = "mochi.settings.clickThrough"
+        case pinToMenuGap = "mochi.settings.pinToMenuGap"
         case startAtLogin = "mochi.settings.startAtLogin"
         case scale = "mochi.settings.scale"
         case cpuThreshold = "mochi.settings.cpuThreshold"
@@ -25,6 +26,7 @@ public final class UserDefaultsSettingsStore: SettingsPersisting {
     public func load() -> SettingsState {
         var state = SettingsState()
         state.clickThrough = defaults.bool(forKey: Key.clickThrough.rawValue)
+        state.pinToMenuGap = defaults.bool(forKey: Key.pinToMenuGap.rawValue)
         state.startAtLogin = defaults.bool(forKey: Key.startAtLogin.rawValue)
 
         let storedScale = defaults.double(forKey: Key.scale.rawValue)
@@ -47,6 +49,7 @@ public final class UserDefaultsSettingsStore: SettingsPersisting {
 
     public func save(_ state: SettingsState) {
         defaults.set(state.clickThrough, forKey: Key.clickThrough.rawValue)
+        defaults.set(state.pinToMenuGap, forKey: Key.pinToMenuGap.rawValue)
         defaults.set(state.startAtLogin, forKey: Key.startAtLogin.rawValue)
         defaults.set(state.scale, forKey: Key.scale.rawValue)
         defaults.set(state.cpuThreshold, forKey: Key.cpuThreshold.rawValue)

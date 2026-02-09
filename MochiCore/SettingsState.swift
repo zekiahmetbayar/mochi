@@ -3,6 +3,7 @@ import Foundation
 /// Pure logic settings state for testability.
 public struct SettingsState: Equatable {
     public var clickThrough: Bool
+    public var pinToMenuGap: Bool
     public var startAtLogin: Bool
     public var scale: Double
     public var cpuThreshold: Double
@@ -12,6 +13,7 @@ public struct SettingsState: Equatable {
 
     public init(
         clickThrough: Bool = false,
+        pinToMenuGap: Bool = false,
         startAtLogin: Bool = false,
         scale: Double = 1.0,
         cpuThreshold: Double = 70.0,
@@ -20,6 +22,7 @@ public struct SettingsState: Equatable {
         showDebugOverlay: Bool = false
     ) {
         self.clickThrough = clickThrough
+        self.pinToMenuGap = pinToMenuGap
         self.startAtLogin = startAtLogin
         self.scale = scale
         self.cpuThreshold = cpuThreshold

@@ -18,6 +18,14 @@ final class OverlayBridge: ObservableObject {
         controller?.move(toX: x)
     }
 
+    func resolvePreferredPinnedX(completion: @escaping (Double?) -> Void) {
+        guard let controller else {
+            completion(nil)
+            return
+        }
+        controller.resolvePreferredPinnedX(completion: completion)
+    }
+
     func toggleClickThrough() {
         clickThrough.toggle()
     }
