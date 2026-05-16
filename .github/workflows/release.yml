@@ -131,9 +131,14 @@ jobs:
           body: |
             ## Install
 
-            1. Download `Mochi-${{ steps.version.outputs.version }}.dmg` below.
-            2. Open it and drag **Mochi** into your **Applications** folder.
-            3. First launch: right-click `Mochi.app` → **Open** (the build is ad-hoc signed, so Gatekeeper will ask once).
-            4. Open the settings popover (click Mochi) and enable **Start at login** if you want it on every boot.
+            ```bash
+            brew install --cask zekiahmetbayar/mochi/mochi
+            ```
 
             Universal binary — runs on both Apple Silicon and Intel Macs (macOS 13+).
+
+      - name: Update Homebrew tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION:  ${{ steps.version.outputs.version }}
+        run: scripts/update-tap.sh

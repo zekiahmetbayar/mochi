@@ -124,14 +124,13 @@ Mochi's appearance reflects what's happening underneath. All thresholds are tuna
 
 ## Install
 
-Grab the latest `.dmg` from the [**Releases**](../../releases/latest) page.
+```bash
+brew install --cask zekiahmetbayar/mochi/mochi
+```
 
-1. Open the DMG and drag **Mochi** into your **Applications** folder.
-2. On first launch, right-click `Mochi.app` → **Open** (the build is ad-hoc signed, so Gatekeeper asks once). Or run:
-   ```bash
-   xattr -dr com.apple.quarantine /Applications/Mochi.app
-   ```
-3. Click Mochi on your menu bar to open settings, then enable **Start at login**. From then on, Mochi launches automatically on every boot and sleeps cleanly when your Mac does — no LaunchAgent, no helper process, no Dock icon.
+No Gatekeeper warning, no manual steps — Brew handles everything. After install, click Mochi on your menu bar to open settings and enable **Start at login** so it launches on every boot. No Dock icon, no helper process, no LaunchAgent — just a Login Item the system handles cleanly.
+
+Update later with `brew upgrade --cask mochi`. Uninstall with `brew uninstall --cask mochi`.
 
 Requires macOS 13 or newer. Universal binary — runs on both Apple Silicon and Intel Macs.
 

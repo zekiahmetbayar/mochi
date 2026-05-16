@@ -28,7 +28,10 @@ hdiutil create \
     -ov -format UDZO \
     "$DMG" >/dev/null
 
-# Make the DMG itself ad-hoc signed too (some Gatekeeper checks look at it).
-codesign --force --sign - "$DMG"
+# Sanity-check the DMG immediately so a broken image never leaves this script.
+hdiutil verify "$DMG" >/dev/null
+
+# Note: we DON'T re-codesign the DMG. Ad-hoc DMG signing is meaningless and
+# has historically corrupted some readers. The .app inside is already signed.
 
 echo "==> Built $DMG ($(du -h "$DMG" | cut -f1))"
