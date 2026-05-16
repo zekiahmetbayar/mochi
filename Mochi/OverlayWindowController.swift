@@ -71,6 +71,28 @@ final class OverlayWindowController: NSWindowController, OverlayControlling {
         window?.orderOut(nil)
     }
 
+    /// Returns the notch X range in screen-local coordinates (relative to screen.minX),
+    /// or nil if the current screen has no notch.
+    func notchLocalRange() -> (left: Double, right: Double)? {
+        if #available(macOS 12.0, *) {
+            guard let left = screen.auxiliaryTopLeftArea,
+                  let right = screen.auxiliaryTopRightArea else { return nil }
+            let notchLeft = left.maxX - screen.frame.minX
+            let notchRight = right.minX - screen.frame.minX
+            guard notchRight > notchLeft else { return nil }
+            return (Double(notchLeft), Double(notchRight))
+        }
+        return nil
+    }
+
+    var overlayWidth: Double {
+        Double(window?.frame.width ?? (playAreaWidth ?? 0))
+    }
+
+    var screenWidth: Double {
+        Double(screen.frame.width)
+    }
+
     func move(toX x: Double) {
         guard let window else { return }
         let minX = screen.frame.minX

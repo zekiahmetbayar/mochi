@@ -156,5 +156,15 @@ final class MochiViewModel: ObservableObject {
         ],
         loop: true
     )
+
+    static let portalInAnimation = SpriteAnimation(
+        frames: [SpriteFrame(imageName: "mochi_portal_in", duration: 0.15)],
+        loop: true
+    )
+
+    static let portalOutAnimation = SpriteAnimation(
+        frames: [SpriteFrame(imageName: "mochi_portal_out", duration: 0.15)],
+        loop: true
+    )
 }
 #endif

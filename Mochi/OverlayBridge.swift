@@ -18,6 +18,12 @@ final class OverlayBridge: ObservableObject {
         controller?.move(toX: x)
     }
 
+    func notchLocalRange() -> (left: Double, right: Double)? {
+        controller?.notchLocalRange()
+    }
+
+    var overlayWidth: Double { controller?.overlayWidth ?? 0 }
+
     func resolvePreferredPinnedX(completion: @escaping (Double?) -> Void) {
         guard let controller else {
             completion(nil)

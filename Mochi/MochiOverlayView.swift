@@ -13,21 +13,18 @@ struct MochiOverlayView<SpriteContent: View>: View {
 
     var body: some View {
         GeometryReader { geo in
-            let clampedLeft = clampLeft(in: geo.size.width)
+            // The overlay window itself slides horizontally; keep the sprite centered
+            // within the window so screen-space math (sprite center = positionX + width/2)
+            // stays simple for features like the notch portal.
             let spriteY = computeY(containerHeight: geo.size.height)
             SpriteRendererView(animation: animation, renderer: spriteContent)
                 .frame(width: spriteSize.width, height: spriteSize.height)
                 .position(
-                    x: clampedLeft + spriteSize.width / 2,
+                    x: geo.size.width / 2,
                     y: spriteY + spriteSize.height / 2
                 )
                 .contentShape(Rectangle())
         }
-    }
-
-    private func clampLeft(in width: CGFloat) -> CGFloat {
-        let maxLeft = max(width - spriteSize.width, 0)
-        return min(max(positionX, 0), maxLeft)
     }
 
     private func computeY(containerHeight: CGFloat) -> CGFloat {
