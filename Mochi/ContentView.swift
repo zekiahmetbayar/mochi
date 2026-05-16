@@ -370,31 +370,28 @@ struct ContentView: View {
     }
 
     private var displayAnimation: SpriteAnimation {
+        let pet = settings.state.petKind
         if Date() < dashEndTime {
-            return MochiViewModel.walkAnimation
+            return MochiViewModel.walkAnimation(for: pet)
         }
         if isHovered {
-            return MochiViewModel.rollAnimation
+            return MochiViewModel.rollAnimation(for: pet)
         }
         switch viewModel.mood {
         case .sleeping:
-            return MochiViewModel.sleepAnimation
+            return MochiViewModel.sleepAnimation(for: pet)
         case .carrying:
-            return MochiViewModel.bagAnimation
+            return MochiViewModel.bagAnimation(for: pet)
         case .sweating:
-            return MochiViewModel.sweatAnimation
+            return MochiViewModel.sweatAnimation(for: pet)
         case .chonky:
-            return MochiViewModel.chonkAnimation
+            return MochiViewModel.chonkAnimation(for: pet)
         case .normal:
             switch behavior {
-            case .walk:
-                return MochiViewModel.walkAnimation
-            case .sit:
-                return MochiViewModel.sitAnimation
-            case .look:
-                return MochiViewModel.lookAnimation
-            case .nap:
-                return MochiViewModel.sleepAnimation
+            case .walk: return MochiViewModel.walkAnimation(for: pet)
+            case .sit:  return MochiViewModel.sitAnimation(for: pet)
+            case .look: return MochiViewModel.lookAnimation(for: pet)
+            case .nap:  return MochiViewModel.sleepAnimation(for: pet)
             }
         }
     }
@@ -706,16 +703,28 @@ struct SettingsPopoverView: View {
                 }
             }
             section(title: "Appearance") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Size")
-                        .font(.system(size: 12))
-                    Picker("", selection: $state.scale) {
-                        Label("S", systemImage: "smallcircle.filled.circle").tag(1.0)
-                        Label("M", systemImage: "circle.circle.fill").tag(1.5)
-                        Label("L", systemImage: "largecircle.fill.circle").tag(2.0)
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Pet")
+                            .font(.system(size: 12))
+                        Picker("", selection: $state.petKind) {
+                            Label("Cat", systemImage: "cat.fill").tag(PetKind.cat)
+                            Label("Dog", systemImage: "dog.fill").tag(PetKind.dog)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
                     }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Size")
+                            .font(.system(size: 12))
+                        Picker("", selection: $state.scale) {
+                            Label("S", systemImage: "smallcircle.filled.circle").tag(1.0)
+                            Label("M", systemImage: "circle.circle.fill").tag(1.5)
+                            Label("L", systemImage: "largecircle.fill.circle").tag(2.0)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                    }
                 }
             }
             section(title: "Reactions") {

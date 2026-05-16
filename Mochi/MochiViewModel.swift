@@ -86,76 +86,92 @@ final class MochiViewModel: ObservableObject {
         }
     }
 
-    static let idleAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_idle_0", duration: 0.12),
-            SpriteFrame(imageName: "mochi_idle_1", duration: 0.12)
-        ],
-        loop: true
-    )
+    // Backward-compat: default-pet aliases for existing call sites/tests.
+    static var idleAnimation: SpriteAnimation { idleAnimation(for: .cat) }
+    static var walkAnimation: SpriteAnimation { walkAnimation(for: .cat) }
+    static var sitAnimation: SpriteAnimation { sitAnimation(for: .cat) }
+    static var lookAnimation: SpriteAnimation { lookAnimation(for: .cat) }
+    static var rollAnimation: SpriteAnimation { rollAnimation(for: .cat) }
+    static var sleepAnimation: SpriteAnimation { sleepAnimation(for: .cat) }
+    static var sweatAnimation: SpriteAnimation { sweatAnimation(for: .cat) }
+    static var chonkAnimation: SpriteAnimation { chonkAnimation(for: .cat) }
+    static var bagAnimation: SpriteAnimation { bagAnimation(for: .cat) }
 
-    static let walkAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_walk_0", duration: 0.12),
-            SpriteFrame(imageName: "mochi_walk_1", duration: 0.12),
-            SpriteFrame(imageName: "mochi_walk_2", duration: 0.12),
-            SpriteFrame(imageName: "mochi_walk_3", duration: 0.12)
-        ],
-        loop: true
-    )
+    static func idleAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [
+                SpriteFrame(imageName: "\(pet.spritePrefix)_idle_0", duration: 0.12),
+                SpriteFrame(imageName: "\(pet.spritePrefix)_idle_1", duration: 0.12)
+            ],
+            loop: true
+        )
+    }
 
-    static let sitAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_sit_0", duration: 0.4)
-        ],
-        loop: true
-    )
+    static func walkAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: (0...3).map {
+                SpriteFrame(imageName: "\(pet.spritePrefix)_walk_\($0)", duration: 0.12)
+            },
+            loop: true
+        )
+    }
 
-    static let lookAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_look_0", duration: 0.35),
-            SpriteFrame(imageName: "mochi_look_1", duration: 0.2)
-        ],
-        loop: true
-    )
+    static func sitAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [SpriteFrame(imageName: "\(pet.spritePrefix)_sit_0", duration: 0.4)],
+            loop: true
+        )
+    }
 
-    static let rollAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_roll_0", duration: 0.14),
-            SpriteFrame(imageName: "mochi_roll_1", duration: 0.14),
-            SpriteFrame(imageName: "mochi_roll_2", duration: 0.14),
-            SpriteFrame(imageName: "mochi_roll_1", duration: 0.14)
-        ],
-        loop: true
-    )
+    static func lookAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [
+                SpriteFrame(imageName: "\(pet.spritePrefix)_look_0", duration: 0.35),
+                SpriteFrame(imageName: "\(pet.spritePrefix)_look_1", duration: 0.2)
+            ],
+            loop: true
+        )
+    }
 
-    static let sleepAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_sleep_0", duration: 0.25)
-        ],
-        loop: true
-    )
+    static func rollAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [
+                SpriteFrame(imageName: "\(pet.spritePrefix)_roll_0", duration: 0.14),
+                SpriteFrame(imageName: "\(pet.spritePrefix)_roll_1", duration: 0.14),
+                SpriteFrame(imageName: "\(pet.spritePrefix)_roll_2", duration: 0.14),
+                SpriteFrame(imageName: "\(pet.spritePrefix)_roll_1", duration: 0.14)
+            ],
+            loop: true
+        )
+    }
 
-    static let sweatAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_sweat_0", duration: 0.2)
-        ],
-        loop: true
-    )
+    static func sleepAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [SpriteFrame(imageName: "\(pet.spritePrefix)_sleep_0", duration: 0.25)],
+            loop: true
+        )
+    }
 
-    static let chonkAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_chonk_0", duration: 0.2)
-        ],
-        loop: true
-    )
+    static func sweatAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [SpriteFrame(imageName: "\(pet.spritePrefix)_sweat_0", duration: 0.2)],
+            loop: true
+        )
+    }
 
-    static let bagAnimation = SpriteAnimation(
-        frames: [
-            SpriteFrame(imageName: "mochi_bag_0", duration: 0.2)
-        ],
-        loop: true
-    )
+    static func chonkAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [SpriteFrame(imageName: "\(pet.spritePrefix)_chonk_0", duration: 0.2)],
+            loop: true
+        )
+    }
+
+    static func bagAnimation(for pet: PetKind) -> SpriteAnimation {
+        SpriteAnimation(
+            frames: [SpriteFrame(imageName: "\(pet.spritePrefix)_bag_0", duration: 0.2)],
+            loop: true
+        )
+    }
 
     static let portalInAnimation = SpriteAnimation(
         frames: [SpriteFrame(imageName: "mochi_portal_in", duration: 0.15)],

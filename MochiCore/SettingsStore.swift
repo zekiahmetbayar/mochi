@@ -15,6 +15,7 @@ public final class UserDefaultsSettingsStore: SettingsPersisting {
         case ramThreshold = "mochi.settings.ramThreshold"
         case downloadThreshold = "mochi.settings.downloadThreshold"
         case showDebugOverlay = "mochi.settings.showDebugOverlay"
+        case petKind = "mochi.settings.petKind"
     }
 
     private let defaults: UserDefaults
@@ -44,6 +45,10 @@ public final class UserDefaultsSettingsStore: SettingsPersisting {
         if dl > 0 { state.downloadThreshold = dl }
 
         state.showDebugOverlay = defaults.bool(forKey: Key.showDebugOverlay.rawValue)
+        if let raw = defaults.string(forKey: Key.petKind.rawValue),
+           let kind = PetKind(rawValue: raw) {
+            state.petKind = kind
+        }
         return state
     }
 
@@ -56,5 +61,6 @@ public final class UserDefaultsSettingsStore: SettingsPersisting {
         defaults.set(state.ramThreshold, forKey: Key.ramThreshold.rawValue)
         defaults.set(state.downloadThreshold, forKey: Key.downloadThreshold.rawValue)
         defaults.set(state.showDebugOverlay, forKey: Key.showDebugOverlay.rawValue)
+        defaults.set(state.petKind.rawValue, forKey: Key.petKind.rawValue)
     }
 }
