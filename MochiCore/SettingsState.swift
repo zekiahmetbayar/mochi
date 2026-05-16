@@ -38,7 +38,7 @@ public struct SettingsState: Equatable {
         scale: Double = 1.0,
         cpuThreshold: Double = 70.0,
         ramThreshold: Double = 75.0,
-        downloadThreshold: Double = 100_000,
+        downloadThreshold: Double = 2_000_000,
         showDebugOverlay: Bool = false,
         petKind: PetKind = .cat
     ) {

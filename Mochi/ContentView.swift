@@ -188,13 +188,21 @@ struct ContentView: View {
                 isResolvingPinnedAnchor = false
                 guard settings.state.pinToMenuGap else { return }
                 if let raw {
-                    pinnedAnchorX = min(max(raw, 0), Double(travelWidth))
-                    nextPinnedAnchorRefresh = Date().addingTimeInterval(2.0)
+                    let clamped = min(max(raw, 0), Double(travelWidth))
+                    // Skip tiny jitter so we don't snap Mochi for sub-pixel probe noise.
+                    if let current = pinnedAnchorX, abs(current - clamped) < 4 {
+                        // no-op: keep the current anchor
+                    } else {
+                        pinnedAnchorX = clamped
+                    }
+                    // Probe is disruptive (briefly shifts the menu bar layout),
+                    // so re-run rarely — only every 30s once we have an anchor.
+                    nextPinnedAnchorRefresh = Date().addingTimeInterval(30.0)
                 } else {
                     if pinnedAnchorX == nil {
                         pinnedAnchorX = min(max(physics.positionX, 0), Double(travelWidth))
                     }
-                    nextPinnedAnchorRefresh = Date().addingTimeInterval(0.8)
+                    nextPinnedAnchorRefresh = Date().addingTimeInterval(2.0)
                 }
             }
         }
@@ -549,19 +557,6 @@ struct ContentView: View {
                                 .transition(.opacity)
                                 .animation(.easeOut(duration: 0.2), value: isHovered)
                         }
-                        if settings.state.showDebugOverlay {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("CPU \(Int(viewModel.stats.cpuPercent))%")
-                                Text("RAM \(Int(viewModel.stats.ramUsedPercent))%")
-                                Text("DL \(formatBytes(viewModel.stats.downloadRate))/s")
-                            }
-                            .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                            .padding(4)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(4)
-                            .offset(x: 4, y: -6)
-                            .transition(.opacity)
-                        }
                     }
             } else {
                 Text("Sprite missing")
@@ -698,9 +693,6 @@ struct SettingsPopoverView: View {
                         .labelsHidden()
                         .disabled(!startAtLoginSupported)
                 }
-                SettingRow(title: "Show debug overlay") {
-                    Toggle("", isOn: $state.showDebugOverlay).labelsHidden()
-                }
             }
             section(title: "Appearance") {
                 VStack(alignment: .leading, spacing: 10) {
@@ -741,7 +733,7 @@ struct SettingsPopoverView: View {
                 SliderRow(label: "Heavy download",
                           systemImage: "arrow.down.circle",
                           value: $state.downloadThreshold,
-                          range: 50_000...400_000,
+                          range: 500_000...50_000_000,
                           format: Self.formatBytesPerSecond)
             }
             Divider().opacity(0.4)

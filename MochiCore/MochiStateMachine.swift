@@ -17,7 +17,7 @@ public final class MochiStateMachine {
     public var sleepEnterSeconds: Double = 2.0
     public var sleepExitSeconds: Double = 1.0
 
-    public var bagThreshold: Double = 100_000 // bytes/sec (~100 KB/s)
+    public var bagThreshold: Double = 2_000_000 // bytes/sec (~2 MB/s)
     public var bagEnterSeconds: Double = 3.0
     public var bagExitSeconds: Double = 2.0
 
