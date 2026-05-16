@@ -119,13 +119,6 @@ jobs:
           ls -lh build/
           hdiutil verify "build/Mochi-${{ steps.version.outputs.version }}.dmg"
 
-      - name: Upload artifact (debug)
-        uses: actions/upload-artifact@v4
-        with:
-          name: Mochi-${{ steps.version.outputs.version }}-dmg
-          path: build/Mochi-${{ steps.version.outputs.version }}.dmg
-          if-no-files-found: error
-
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
