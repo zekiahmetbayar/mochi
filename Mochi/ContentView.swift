@@ -45,6 +45,7 @@ struct ContentView: View {
     @State private var dashEndTime: Date = .distantPast
     @State private var dashDirection: Double = 1
     @State private var rightClickMonitor: Any?
+    @State private var popoverOutsideMonitors: [Any] = []
     private let dashSpeedMultiplier: Double = 3.5
     private let dashDuration: TimeInterval = 1.0
     @State private var portalPhase: PortalPhase = .idle
@@ -319,6 +320,42 @@ struct ContentView: View {
         }
     }
 
+    /// Closes the settings popover when the user clicks anywhere outside it
+    /// (other apps via global monitor; our own windows via local monitor).
+    private func installPopoverDismissMonitors() {
+        removePopoverDismissMonitors()
+        let buttons: NSEvent.EventTypeMask = [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        let global = NSEvent.addGlobalMonitorForEvents(matching: buttons) { _ in
+            DispatchQueue.main.async { showSettings = false }
+        }
+        let local = NSEvent.addLocalMonitorForEvents(matching: buttons) { event in
+            // Only close when the click landed outside the popover's own window.
+            if let popover = popoverWindow(), event.window === popover {
+                return event
+            }
+            DispatchQueue.main.async { showSettings = false }
+            return event
+        }
+        var monitors: [Any] = []
+        if let global { monitors.append(global) }
+        if let local { monitors.append(local) }
+        popoverOutsideMonitors = monitors
+    }
+
+    private func removePopoverDismissMonitors() {
+        for monitor in popoverOutsideMonitors {
+            NSEvent.removeMonitor(monitor)
+        }
+        popoverOutsideMonitors.removeAll()
+    }
+
+    /// Best-effort lookup of the active NSPopover window in our app.
+    private func popoverWindow() -> NSWindow? {
+        NSApp.windows.first { window in
+            window.isVisible && String(describing: type(of: window)).contains("Popover")
+        }
+    }
+
     /// Triggered by right-click on Mochi: dash for 1s toward the farther screen edge.
     private func triggerDash(travelWidth: Double) {
         guard travelWidth > 1 else { return }
@@ -436,6 +473,7 @@ struct ContentView: View {
                     NSEvent.removeMonitor(monitor)
                     rightClickMonitor = nil
                 }
+                removePopoverDismissMonitors()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                 ticker.setFPS(24)
@@ -445,6 +483,13 @@ struct ContentView: View {
             }
             .onChange(of: settings.state) { newValue in
                 applySettings(newValue)
+            }
+            .onChange(of: showSettings) { isOpen in
+                if isOpen {
+                    installPopoverDismissMonitors()
+                } else {
+                    removePopoverDismissMonitors()
+                }
             }
             .onChange(of: settings.state.pinToMenuGap) { pinned in
                 let now = Date()
