@@ -39,16 +39,15 @@ struct ContentView: View {
 
     /// Scale sprites so they fit comfortably inside the menu bar.
     private var spriteSize: CGSize {
-        let targetHeight = max(min(menuBarHeight - 2, 26), 18)
-        // Allow upscale but clamp to ~2.5x menu bar height (up to 64px) to avoid spill.
-        let maxHeight = min(menuBarHeight * 2.5, 64)
+        let targetHeight = max(min(menuBarHeight - 2, 26), 18) * 1.15
+        let maxHeight = min(menuBarHeight * 2.8, 72)
         let desiredHeight = min(targetHeight * settings.state.scale, maxHeight)
         let scale = desiredHeight / baseSpriteSize.height
         return CGSize(width: baseSpriteSize.width * scale, height: desiredHeight)
     }
 
     private var playAreaHeight: CGFloat {
-        max(menuBarHeight, spriteSize.height)
+        max(menuBarHeight, spriteSize.height) + 4
     }
 
     private func advanceBehavior(now: Date) {
@@ -299,14 +298,13 @@ struct ContentView: View {
                         }
                     }
                     .popover(isPresented: $showSettings, arrowEdge: .top, content: settingsContent)
-                    .overlay(alignment: .topLeading) {
+                    .overlay(alignment: .top) {
                         if isHovered {
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.pink)
-                                .padding(.top, -4)
-                                .padding(.leading, -4)
-                                .transition(.opacity.combined(with: .scale))
+                            FloatingHearts()
+                                .frame(width: spriteSize.width, height: spriteSize.height + 14)
+                                .offset(y: -(spriteSize.height + 8))
+                                .allowsHitTesting(false)
+                                .transition(.opacity)
                                 .animation(.easeOut(duration: 0.2), value: isHovered)
                         }
                         if settings.state.showDebugOverlay {
@@ -444,6 +442,49 @@ struct SettingsPopoverView: View {
         } else {
             return String(format: "%.0f B", bytes)
         }
+    }
+}
+
+/// Three small pink hearts rising from the bottom to the top of their frame in a continuous loop.
+private struct FloatingHearts: View {
+    private let count = 3
+    private let period: Double = 1.6
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            GeometryReader { geo in
+                ZStack {
+                    ForEach(0..<count, id: \.self) { i in
+                        let phase = (t / period + Double(i) / Double(count)).truncatingRemainder(dividingBy: 1.0)
+                        let progress = CGFloat(phase)
+                        let xJitter = sin(progress * .pi * 2 + Double(i)) * 4
+                        let opacity = heartOpacity(progress: progress)
+                        let scale = 0.7 + 0.3 * sin(progress * .pi) // grow then shrink slightly
+
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.pink)
+                            .opacity(opacity)
+                            .scaleEffect(scale)
+                            .position(
+                                x: geo.size.width / 2 + CGFloat(xJitter),
+                                y: geo.size.height * (1 - progress)
+                            )
+                    }
+                }
+            }
+        }
+    }
+
+    private func heartOpacity(progress: CGFloat) -> Double {
+        // Fade in over first 20%, hold, fade out over last 25%.
+        if progress < 0.2 {
+            return Double(progress / 0.2)
+        } else if progress > 0.75 {
+            return Double((1 - progress) / 0.25)
+        }
+        return 1
     }
 }
 

@@ -40,9 +40,11 @@ struct MochiOverlayView<SpriteContent: View>: View {
             spriteHeight: Double(spriteSize.height),
             hangDown: Double(hangOffset)
         )
-        let clampedRaw = max(0, raw)
-        let maxY = max(containerHeight - spriteSize.height, 0)
-        return min(CGFloat(clampedRaw), maxY)
+        // Keep a small top margin so the sprite's head never sits at the screen edge.
+        let topMargin: CGFloat = 4
+        let clampedRaw = max(topMargin, CGFloat(raw))
+        let maxY = max(containerHeight - spriteSize.height, topMargin)
+        return min(clampedRaw, maxY)
     }
 }
 #endif
