@@ -53,6 +53,7 @@ struct ContentView: View {
     @State private var portalSavedSpeedMul: Double = 1.0
     @State private var portalDirection: Double = 1.0
     @State private var portalStart: Date = .distantPast
+    @State private var portalAnim: PortalAnim = .idle
     private let portalEnteringDuration: TimeInterval = 0.55
     private let portalExitingDuration: TimeInterval = 0.55
     @StateObject private var ticker = AnimationTicker(fps: 24, leewayMilliseconds: 12)
@@ -424,6 +425,8 @@ struct ContentView: View {
                 }
                 physics.step(dt: dt)
                 updatePortal(now: date)
+                let newAnim = portalAnimationValues(at: date)
+                if newAnim != portalAnim { portalAnim = newAnim }
                 overlayBridge.movePet(toX: physics.positionX)
             }
             .onDisappear {
@@ -476,60 +479,57 @@ struct ContentView: View {
     }
 
     private func spriteSpriteView(frame: SpriteFrame) -> some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-            let anim = portalAnimationValues(at: context.date)
-            let facingLeft = physics.velocityX < 0
-            ZStack {
-                if let image = spriteImage(named: frame.imageName) {
-                    image
-                        .interpolation(.none)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: spriteSize.width, height: spriteSize.height, alignment: .bottom)
-                        .scaleEffect(x: facingLeft ? -1 : 1, y: 1, anchor: .center)
-                        .scaleEffect(anim.catScale, anchor: .bottom)
-                        .opacity(anim.catOpacity)
-                        .contentShape(Rectangle())
-                        .onTapGesture { showSettings.toggle() }
-                        .onHover { hovering in
-                            withAnimation(.easeOut(duration: 0.18)) {
-                                isHovered = hovering
-                            }
+        let facingLeft = physics.velocityX < 0
+        return ZStack {
+            if let image = spriteImage(named: frame.imageName) {
+                image
+                    .interpolation(.none)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: spriteSize.width, height: spriteSize.height, alignment: .bottom)
+                    .scaleEffect(x: facingLeft ? -1 : 1, y: 1, anchor: .center)
+                    .scaleEffect(portalAnim.catScale, anchor: .bottom)
+                    .opacity(portalAnim.catOpacity)
+                    .contentShape(Rectangle())
+                    .onTapGesture { showSettings.toggle() }
+                    .onHover { hovering in
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            isHovered = hovering
                         }
-                        .popover(isPresented: $showSettings, arrowEdge: .top, content: settingsContent)
-                        .overlay(alignment: .top) {
-                            if isHovered {
-                                FloatingHearts()
-                                    .frame(width: spriteSize.width, height: spriteSize.height + 14)
-                                    .offset(y: -(spriteSize.height + 8))
-                                    .allowsHitTesting(false)
-                                    .transition(.opacity)
-                                    .animation(.easeOut(duration: 0.2), value: isHovered)
-                            }
-                            if settings.state.showDebugOverlay {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("CPU \(Int(viewModel.stats.cpuPercent))%")
-                                    Text("RAM \(Int(viewModel.stats.ramUsedPercent))%")
-                                    Text("DL \(formatBytes(viewModel.stats.downloadRate))/s")
-                                }
-                                .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                                .padding(4)
-                                .background(.ultraThinMaterial)
-                                .cornerRadius(4)
-                                .offset(x: 4, y: -6)
+                    }
+                    .popover(isPresented: $showSettings, arrowEdge: .top, content: settingsContent)
+                    .overlay(alignment: .top) {
+                        if isHovered {
+                            FloatingHearts()
+                                .frame(width: spriteSize.width, height: spriteSize.height + 14)
+                                .offset(y: -(spriteSize.height + 8))
+                                .allowsHitTesting(false)
                                 .transition(.opacity)
-                            }
+                                .animation(.easeOut(duration: 0.2), value: isHovered)
                         }
-                } else {
-                    Text("Sprite missing")
-                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.red)
-                        .frame(width: spriteSize.width, height: spriteSize.height)
-                }
-                portalOverlay(anim: anim)
+                        if settings.state.showDebugOverlay {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("CPU \(Int(viewModel.stats.cpuPercent))%")
+                                Text("RAM \(Int(viewModel.stats.ramUsedPercent))%")
+                                Text("DL \(formatBytes(viewModel.stats.downloadRate))/s")
+                            }
+                            .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                            .padding(4)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(4)
+                            .offset(x: 4, y: -6)
+                            .transition(.opacity)
+                        }
+                    }
+            } else {
+                Text("Sprite missing")
+                    .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                    .foregroundColor(.red)
+                    .frame(width: spriteSize.width, height: spriteSize.height)
             }
-            .frame(width: spriteSize.width, height: spriteSize.height)
+            portalOverlay(anim: portalAnim)
         }
+        .frame(width: spriteSize.width, height: spriteSize.height)
     }
 
     @ViewBuilder
@@ -546,16 +546,17 @@ struct ContentView: View {
         }
     }
 
-    private struct PortalAnim {
+    private struct PortalAnim: Equatable {
         let catOpacity: Double
         let catScale: Double
         let portalFrameName: String?
+        static let idle = PortalAnim(catOpacity: 1, catScale: 1, portalFrameName: nil)
     }
 
     private func portalAnimationValues(at date: Date) -> PortalAnim {
         switch portalPhase {
         case .idle:
-            return PortalAnim(catOpacity: 1, catScale: 1, portalFrameName: nil)
+            return .idle
 
         case .entering:
             let p = clamp01(date.timeIntervalSince(portalStart) / portalEnteringDuration)

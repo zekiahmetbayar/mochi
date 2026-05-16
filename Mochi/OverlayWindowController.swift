@@ -116,14 +116,28 @@ final class OverlayWindowController: NSWindowController, OverlayControlling {
                 completion(nil)
                 return
             }
-            let leftEdge = probeEdge ?? self.leftEdgeOfRightStatusItems()
-            completion(leftEdge.map(self.localPinnedX(fromLeftEdge:)))
+            let standardStatusWidth: CGFloat = 24
+            if let probeEdge {
+                // Probe sat at the leftmost free slot — drop Mochi into that exact slot.
+                let target = probeEdge + standardStatusWidth / 2
+                completion(self.localPinnedX(forSpriteCenter: target))
+                return
+            }
+            if let leftmost = self.leftEdgeOfRightStatusItems() {
+                // No probe → land just to the left of the leftmost real status item.
+                let target = leftmost - standardStatusWidth / 2
+                completion(self.localPinnedX(forSpriteCenter: target))
+                return
+            }
+            completion(nil)
         }
     }
 
-    private func localPinnedX(fromLeftEdge leftEdge: CGFloat) -> Double {
+    /// Convert a target sprite-center screen X into a window-origin (local-to-screen) X.
+    private func localPinnedX(forSpriteCenter targetCenter: CGFloat) -> Double {
         let windowWidth = window?.frame.width ?? (playAreaWidth ?? petHeight * 2)
-        let globalX = leftEdge - windowWidth - 6
+        // The sprite is centered inside the overlay window, so window left = center - half width.
+        let globalX = targetCenter - windowWidth / 2
         let localX = globalX - screen.frame.minX
         let maxLocal = max(0, screen.frame.width - windowWidth)
         return Double(min(max(localX, 0), maxLocal))
