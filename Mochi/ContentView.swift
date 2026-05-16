@@ -47,7 +47,7 @@ struct ContentView: View {
     }
 
     private var playAreaHeight: CGFloat {
-        max(menuBarHeight, spriteSize.height) + 4
+        max(menuBarHeight, spriteSize.height) + 10
     }
 
     private func advanceBehavior(now: Date) {
@@ -456,29 +456,30 @@ private struct FloatingHearts: View {
             GeometryReader { geo in
                 ZStack {
                     ForEach(0..<count, id: \.self) { i in
-                        let phase = (t / period + Double(i) / Double(count)).truncatingRemainder(dividingBy: 1.0)
-                        let progress = CGFloat(phase)
-                        let xJitter = sin(progress * .pi * 2 + Double(i)) * 4
-                        let opacity = heartOpacity(progress: progress)
-                        let scale = 0.7 + 0.3 * sin(progress * .pi) // grow then shrink slightly
-
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.pink)
-                            .opacity(opacity)
-                            .scaleEffect(scale)
-                            .position(
-                                x: geo.size.width / 2 + CGFloat(xJitter),
-                                y: geo.size.height * (1 - progress)
-                            )
+                        heart(index: i, time: t, size: geo.size)
                     }
                 }
             }
         }
     }
 
+    private func heart(index: Int, time: Double, size: CGSize) -> some View {
+        let phase = ((time / period) + Double(index) / Double(count))
+            .truncatingRemainder(dividingBy: 1.0)
+        let progress = CGFloat(phase)
+        let xJitter = CGFloat(sin(phase * .pi * 2 + Double(index)) * 4)
+        let scale = CGFloat(0.7 + 0.3 * sin(phase * .pi))
+        let x = size.width / 2 + xJitter
+        let y = size.height * (1 - progress)
+        return Image(systemName: "heart.fill")
+            .font(.system(size: 9, weight: .bold))
+            .foregroundColor(.pink)
+            .opacity(heartOpacity(progress: progress))
+            .scaleEffect(scale)
+            .position(x: x, y: y)
+    }
+
     private func heartOpacity(progress: CGFloat) -> Double {
-        // Fade in over first 20%, hold, fade out over last 25%.
         if progress < 0.2 {
             return Double(progress / 0.2)
         } else if progress > 0.75 {

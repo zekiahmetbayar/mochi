@@ -23,10 +23,6 @@ struct MochiOverlayView<SpriteContent: View>: View {
                 )
                 .contentShape(Rectangle())
         }
-        .frame(
-            height: menuBarHeight,
-            alignment: .topLeading
-        )
     }
 
     private func clampLeft(in width: CGFloat) -> CGFloat {
@@ -35,16 +31,17 @@ struct MochiOverlayView<SpriteContent: View>: View {
     }
 
     private func computeY(containerHeight: CGFloat) -> CGFloat {
+        // Keep a small top margin so the sprite's head never sits at the screen edge,
+        // and a bottom margin so the feet stay visible inside the clipped play area.
+        let topMargin: CGFloat = 4
+        let bottomMargin: CGFloat = 4
         let raw = OverlayGeometry.computeSpriteOriginY(
             menuBarHeight: Double(menuBarHeight),
             spriteHeight: Double(spriteSize.height),
             hangDown: Double(hangOffset)
         )
-        // Keep a small top margin so the sprite's head never sits at the screen edge.
-        let topMargin: CGFloat = 4
-        let clampedRaw = max(topMargin, CGFloat(raw))
-        let maxY = max(containerHeight - spriteSize.height, topMargin)
-        return min(clampedRaw, maxY)
+        let maxY = max(containerHeight - spriteSize.height - bottomMargin, topMargin)
+        return min(max(topMargin, CGFloat(raw)), maxY)
     }
 }
 #endif
