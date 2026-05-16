@@ -1,0 +1,146 @@
+name: Release
+
+# Triggers:
+#   • push a tag like `v1.2.3` → builds, packages, creates GitHub Release
+#   • manual dispatch via Actions tab → same flow with version input
+#
+# What it does:
+#   1. Builds a universal (arm64 + x86_64) release binary with SwiftPM.
+#   2. Assembles Mochi.app with the correct Info.plist (LSUIElement so it
+#      runs as a background menu-bar overlay with no Dock icon).
+#   3. Ad-hoc codesigns the bundle.
+#   4. Packages it into Mochi-<version>.dmg with a drag-to-Applications layout.
+#   5. Publishes the DMG as an asset on the matching GitHub Release.
+#
+# Optional Developer-ID signing + notarization is documented in the
+# `notarize` step below and activates only when the required secrets are set.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 1.0.0)'
+        required: true
+
+permissions:
+  contents: write   # needed to create releases and upload assets
+
+jobs:
+  release:
+    name: Build & publish DMG
+    runs-on: macos-14
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="v${VERSION}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+          echo "Building Mochi $VERSION (tag $TAG)"
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('Package.swift', 'Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Build universal .app
+        run: scripts/build-app.sh "${{ steps.version.outputs.version }}"
+
+      # OPTIONAL: Developer-ID signing + Apple notarization.
+      # To enable, add these GitHub secrets:
+      #   APPLE_CERT_P12_BASE64    Base64 of your Developer ID Application .p12
+      #   APPLE_CERT_PASSWORD      Password for that .p12
+      #   APPLE_ID                 Apple ID email
+      #   APPLE_APP_PASSWORD       App-specific password
+      #   APPLE_TEAM_ID            10-char team id
+      # Then uncomment this block. Without it, the DMG is ad-hoc signed and
+      # first-time users need to right-click → Open (documented in README).
+      #
+      # - name: Import signing certificate
+      #   if: ${{ env.APPLE_CERT_P12_BASE64 != '' }}
+      #   env:
+      #     APPLE_CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+      #     APPLE_CERT_PASSWORD:   ${{ secrets.APPLE_CERT_PASSWORD }}
+      #   run: |
+      #     echo "$APPLE_CERT_P12_BASE64" | base64 --decode > cert.p12
+      #     security create-keychain -p "" build.keychain
+      #     security default-keychain -s build.keychain
+      #     security unlock-keychain  -p "" build.keychain
+      #     security import cert.p12 -k build.keychain \
+      #       -P "$APPLE_CERT_PASSWORD" -T /usr/bin/codesign
+      #     security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+      #     IDENTITY="$(security find-identity -v -p codesigning build.keychain | grep -o '"[^"]*Developer ID Application[^"]*"' | head -n1 | tr -d '"')"
+      #     codesign --force --deep --sign "$IDENTITY" --options runtime --timestamp build/Mochi.app
+      #
+      # - name: Notarize
+      #   if: ${{ env.APPLE_ID != '' }}
+      #   env:
+      #     APPLE_ID:           ${{ secrets.APPLE_ID }}
+      #     APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      #     APPLE_TEAM_ID:      ${{ secrets.APPLE_TEAM_ID }}
+      #   run: |
+      #     ditto -c -k --keepParent build/Mochi.app build/Mochi.zip
+      #     xcrun notarytool submit build/Mochi.zip \
+      #       --apple-id "$APPLE_ID" \
+      #       --password "$APPLE_APP_PASSWORD" \
+      #       --team-id  "$APPLE_TEAM_ID" \
+      #       --wait
+      #     xcrun stapler staple build/Mochi.app
+
+      - name: Package DMG
+        run: scripts/make-dmg.sh "${{ steps.version.outputs.version }}"
+
+      - name: Verify DMG
+        run: |
+          ls -lh build/
+          hdiutil verify "build/Mochi-${{ steps.version.outputs.version }}.dmg"
+
+      - name: Upload artifact (debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mochi-${{ steps.version.outputs.version }}-dmg
+          path: build/Mochi-${{ steps.version.outputs.version }}.dmg
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Mochi ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: build/Mochi-${{ steps.version.outputs.version }}.dmg
+          body: |
+            ## Install
+
+            1. Download `Mochi-${{ steps.version.outputs.version }}.dmg` below.
+            2. Open it and drag **Mochi** into your **Applications** folder.
+            3. First launch: right-click `Mochi.app` → **Open** (the build is ad-hoc signed, so Gatekeeper will ask once).
+            4. Open the settings popover (click Mochi) and enable **Start at login** if you want it on every boot.
+
+            Universal binary — runs on both Apple Silicon and Intel Macs (macOS 13+).
