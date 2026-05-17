@@ -632,12 +632,29 @@ struct ContentView: View {
     private func easeOut(_ t: Double) -> Double { 1 - pow(1 - t, 3) }
     private func easeIn(_ t: Double) -> Double { pow(t, 2) }
 
-    /// Loads sprite by name from the module bundle; returns nil if missing.
+    /// Loads sprite by name from the packaged SwiftPM resource bundle.
     private func spriteImage(named name: String) -> Image? {
-        guard let url = Bundle.module.url(forResource: name, withExtension: "png"),
+        guard let bundle = Self.spriteBundle,
+              let url = bundle.url(forResource: name, withExtension: "png"),
               let nsImage = NSImage(contentsOf: url) else { return nil }
         return Image(nsImage: nsImage)
     }
+
+    private static let spriteBundle: Bundle? = {
+        let bundleName = "Mochi_MochiApp.bundle"
+        let candidates = [
+            Bundle.main.resourceURL?.appendingPathComponent(bundleName),
+            Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/\(bundleName)"),
+            Bundle.main.executableURL?.deletingLastPathComponent().appendingPathComponent(bundleName)
+        ].compactMap { $0 }
+
+        for url in candidates {
+            if let bundle = Bundle(url: url) {
+                return bundle
+            }
+        }
+        return nil
+    }()
 
     private func settingsContent() -> some View {
         SettingsPopoverView(

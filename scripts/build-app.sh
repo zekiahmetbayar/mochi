@@ -48,9 +48,7 @@ for b in "$ARM_BIN_DIR"/*.bundle; do
 done
 shopt -u nullglob
 
-# SwiftPM's auto-generated resource_bundle_accessor.swift loads
-# Mochi_MochiApp.bundle from the .app's Resources dir at runtime — if it's
-# missing, the app traps on launch.
+# The app loads this bundle from Contents/Resources at runtime.
 if [[ ! -d "$APP/Contents/Resources/Mochi_MochiApp.bundle" ]]; then
     echo "ERROR: Mochi_MochiApp.bundle was not copied (found $copied bundles)" >&2
     echo "Contents of $ARM_BIN_DIR:" >&2
