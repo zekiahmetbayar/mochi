@@ -9,7 +9,6 @@ final class SettingsStoreTests: XCTestCase {
         let store = UserDefaultsSettingsStore(defaults: defaults)
 
         let original = SettingsState(
-            clickThrough: true,
             pinToMenuGap: true,
             startAtLogin: true,
             scale: 1.5,

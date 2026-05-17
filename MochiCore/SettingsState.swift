@@ -21,7 +21,6 @@ public enum PetKind: String, CaseIterable, Equatable, Codable {
 
 /// Pure logic settings state for testability.
 public struct SettingsState: Equatable {
-    public var clickThrough: Bool
     public var pinToMenuGap: Bool
     public var startAtLogin: Bool
     public var scale: Double
@@ -32,7 +31,6 @@ public struct SettingsState: Equatable {
     public var petKind: PetKind
 
     public init(
-        clickThrough: Bool = false,
         pinToMenuGap: Bool = false,
         startAtLogin: Bool = false,
         scale: Double = 1.0,
@@ -42,7 +40,6 @@ public struct SettingsState: Equatable {
         showDebugOverlay: Bool = false,
         petKind: PetKind = .cat
     ) {
-        self.clickThrough = clickThrough
         self.pinToMenuGap = pinToMenuGap
         self.startAtLogin = startAtLogin
         self.scale = scale
@@ -51,9 +48,5 @@ public struct SettingsState: Equatable {
         self.downloadThreshold = downloadThreshold
         self.showDebugOverlay = showDebugOverlay
         self.petKind = petKind
-    }
-
-    public mutating func toggleClickThrough() {
-        clickThrough.toggle()
     }
 }

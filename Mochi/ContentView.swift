@@ -667,7 +667,6 @@ struct ContentView: View {
     }
 
     private func applySettings(_ state: SettingsState) {
-        overlayBridge.clickThrough = state.clickThrough
         viewModel.applySettings(state)
     }
 
@@ -696,10 +695,6 @@ struct SettingsPopoverView: View {
             header
             statsRow
             section(title: "General") {
-                SettingRow(title: "Click-through overlay",
-                           subtitle: "Let clicks pass to apps below") {
-                    Toggle("", isOn: $state.clickThrough).labelsHidden()
-                }
                 SettingRow(title: "Pin to menu gap",
                            subtitle: "Park Mochi next to your status icons") {
                     Toggle("", isOn: $state.pinToMenuGap).labelsHidden()

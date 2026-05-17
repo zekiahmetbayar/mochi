@@ -7,11 +7,7 @@ final class OverlayBridge: ObservableObject {
     static let shared = OverlayBridge()
 
     weak var controller: OverlayWindowController? {
-        didSet { controller?.window?.ignoresMouseEvents = clickThrough }
-    }
-
-    @Published var clickThrough: Bool = false {
-        didSet { controller?.window?.ignoresMouseEvents = clickThrough }
+        didSet { controller?.window?.ignoresMouseEvents = false }
     }
 
     func movePet(toX x: Double) {
@@ -30,10 +26,6 @@ final class OverlayBridge: ObservableObject {
             return
         }
         controller.resolvePreferredPinnedX(completion: completion)
-    }
-
-    func toggleClickThrough() {
-        clickThrough.toggle()
     }
 
     func quitApp() {
