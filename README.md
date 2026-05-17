@@ -2,7 +2,10 @@
 
 <img src="readme_banner.gif" alt="Mochi" width="100%" />
 
-# Mochi
+<h1>
+  <img src="Mochi/Assets/logo.png" alt="" width="44" align="center" />
+  Mochi
+</h1>
 
 **A tiny pixel-art companion that lives above your macOS menu bar.**
 Reacts to your system. Naps when you do. Carries your downloads.
@@ -128,7 +131,14 @@ Mochi's appearance reflects what's happening underneath. All thresholds are tuna
 brew install --cask zekiahmetbayar/mochi/mochi
 ```
 
-No Gatekeeper warning, no manual steps — Brew handles everything. After install, click Mochi on your menu bar to open settings and enable **Start at login** so it launches on every boot. No Dock icon, no helper process, no LaunchAgent — just a Login Item the system handles cleanly.
+The build is ad-hoc signed, Modern macOS still flags it on first launch, so run this once to clear Gatekeeper:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Mochi.app
+open -a Mochi
+```
+
+After it appears in your menu bar, click Mochi → settings popover → enable **Start at login** so it launches on every boot. No Dock icon, no helper process, no LaunchAgent — just a Login Item the system handles cleanly.
 
 Update later with `brew upgrade --cask mochi`. Uninstall with `brew uninstall --cask mochi`.
 

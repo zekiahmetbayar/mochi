@@ -16,14 +16,16 @@ APP="$OUT_DIR/Mochi.app"
 echo "==> Building Mochi $VERSION (universal)"
 mkdir -p "$OUT_DIR"
 
-# Build per-arch so we can lipo into a universal binary. SwiftPM doesn't
-# always produce a usable universal output via `--arch a --arch b` for app
-# bundling, so we do two passes and combine.
+# Build per-arch and ask SwiftPM exactly where it dropped each binary +
+# resource bundle. Hard-coded paths bit us once (resources missing from the
+# .app), so we use `--show-bin-path` instead of guessing.
 swift build -c release --arch arm64
+ARM_BIN_DIR="$(swift build -c release --arch arm64 --show-bin-path)"
 swift build -c release --arch x86_64
+X86_BIN_DIR="$(swift build -c release --arch x86_64 --show-bin-path)"
 
-ARM_BIN=".build/arm64-apple-macosx/release/Mochi"
-X86_BIN=".build/x86_64-apple-macosx/release/Mochi"
+ARM_BIN="$ARM_BIN_DIR/Mochi"
+X86_BIN="$X86_BIN_DIR/Mochi"
 [[ -f "$ARM_BIN" ]] || { echo "missing $ARM_BIN" >&2; exit 1; }
 [[ -f "$X86_BIN" ]] || { echo "missing $X86_BIN" >&2; exit 1; }
 
@@ -35,12 +37,45 @@ echo "==> Combining binaries"
 lipo -create -output "$APP/Contents/MacOS/Mochi" "$ARM_BIN" "$X86_BIN"
 chmod +x "$APP/Contents/MacOS/Mochi"
 
-echo "==> Copying resource bundles"
+echo "==> Copying resource bundles from $ARM_BIN_DIR"
 shopt -s nullglob
-for b in .build/arm64-apple-macosx/release/*.bundle; do
+copied=0
+for b in "$ARM_BIN_DIR"/*.bundle; do
+    [[ -d "$b" ]] || continue
     cp -R "$b" "$APP/Contents/Resources/"
+    echo "    + $(basename "$b")"
+    copied=$((copied + 1))
 done
 shopt -u nullglob
+
+# SwiftPM's auto-generated resource_bundle_accessor.swift loads
+# Mochi_MochiApp.bundle from the .app's Resources dir at runtime — if it's
+# missing, the app traps on launch.
+if [[ ! -d "$APP/Contents/Resources/Mochi_MochiApp.bundle" ]]; then
+    echo "ERROR: Mochi_MochiApp.bundle was not copied (found $copied bundles)" >&2
+    echo "Contents of $ARM_BIN_DIR:" >&2
+    ls -la "$ARM_BIN_DIR" >&2
+    exit 1
+fi
+
+echo "==> Generating app icon"
+ICON_SRC="Mochi/Assets/logo.png"
+ICONSET="$OUT_DIR/Mochi.iconset"
+[[ -f "$ICON_SRC" ]] || { echo "missing $ICON_SRC" >&2; exit 1; }
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+sips -z 16 16     "$ICON_SRC" --out "$ICONSET/icon_16x16.png" >/dev/null
+sips -z 32 32     "$ICON_SRC" --out "$ICONSET/icon_16x16@2x.png" >/dev/null
+sips -z 32 32     "$ICON_SRC" --out "$ICONSET/icon_32x32.png" >/dev/null
+sips -z 64 64     "$ICON_SRC" --out "$ICONSET/icon_32x32@2x.png" >/dev/null
+sips -z 128 128   "$ICON_SRC" --out "$ICONSET/icon_128x128.png" >/dev/null
+sips -z 256 256   "$ICON_SRC" --out "$ICONSET/icon_128x128@2x.png" >/dev/null
+sips -z 256 256   "$ICON_SRC" --out "$ICONSET/icon_256x256.png" >/dev/null
+sips -z 512 512   "$ICON_SRC" --out "$ICONSET/icon_256x256@2x.png" >/dev/null
+sips -z 512 512   "$ICON_SRC" --out "$ICONSET/icon_512x512.png" >/dev/null
+sips -z 1024 1024 "$ICON_SRC" --out "$ICONSET/icon_512x512@2x.png" >/dev/null
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/Mochi.icns"
+rm -rf "$ICONSET"
 
 echo "==> Writing Info.plist"
 sed "s/__VERSION__/$VERSION/g" scripts/Info.plist > "$APP/Contents/Info.plist"

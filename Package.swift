@@ -25,7 +25,7 @@ let package = Package(
         ),
         .testTarget(
             name: "MochiTests",
-            dependencies: ["MochiCore"],
+            dependencies: ["MochiApp", "MochiCore"],
             path: "MochiTests",
             resources: [
                 .process("Fixtures")

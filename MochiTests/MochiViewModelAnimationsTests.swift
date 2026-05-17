@@ -4,10 +4,12 @@ import XCTest
 
 #if os(macOS)
 final class MochiViewModelAnimationsTests: XCTestCase {
+    @MainActor
     func testWalkAnimationHasFourFrames() {
         XCTAssertEqual(MochiViewModel.walkAnimation.frames.count, 4)
     }
 
+    @MainActor
     func testRollAnimationLoops() {
         let roll = MochiViewModel.rollAnimation
         XCTAssertTrue(roll.loop)

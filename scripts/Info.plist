@@ -14,6 +14,8 @@
     <string>Mochi</string>
     <key>CFBundleDisplayName</key>
     <string>Mochi</string>
+    <key>CFBundleIconFile</key>
+    <string>Mochi.icns</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
